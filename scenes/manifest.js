@@ -1318,7 +1318,11 @@
     function restoreNavigationInput({ clearWheel = false } = {}) {
       if (clearWheel) clearWheelGestureState();
       story.touchGestureTriggered = false;
-      requestAnimationFrame(() => requestAnimationFrame(focusNavigationSurface));
+      // Keep the navigation surface armed immediately after a transition. A
+      // trackpad gesture can arrive before two animation frames have elapsed;
+      // delaying focus here makes the next gesture feel like it was dropped.
+      focusNavigationSurface();
+      requestAnimationFrame(focusNavigationSurface);
     }
 
     function requestAdjacentScene(direction, reason = 'discrete-scroll') {
@@ -1372,6 +1376,10 @@
       const direction = story.wheelGestureAccum > 0 ? 1 : -1;
       story.wheelGestureAccum = 0;
       story.wheelGestureLocked = true;
+      // Trackpad wheel events do not reliably leave focus on the story after a
+      // browser compositor transition. Arm it at the same moment the gesture
+      // is accepted, rather than waiting for navigation to finish.
+      focusNavigationSurface();
       requestAdjacentScene(direction, 'wheel-navigation');
     }
 
@@ -1395,6 +1403,7 @@
       if (Math.abs(dy) < DISCRETE_TOUCH_THRESHOLD || Math.abs(dy) < Math.abs(dx) * 1.1) return;
       story.touchGestureTriggered = true;
       // Finger moves up -> content advances to the next scene.
+      focusNavigationSurface();
       requestAdjacentScene(dy < 0 ? 1 : -1, 'touch-navigation');
     }
 
