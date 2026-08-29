@@ -1269,11 +1269,7 @@
       try { video.pause(); } catch (_) {}
       video.muted = true;
       video.playsInline = true;
-      // Detach the media source until this scene is entered so Home does not
-      // trigger downloads for every cinematic video.
-      video.preload = 'none';
-      if (!video.dataset.src && video.getAttribute('src')) video.dataset.src = video.getAttribute('src');
-      video.removeAttribute('src');
+      video.preload = 'auto';
       try { video.currentTime = 0; } catch (_) {}
       video.addEventListener('ended', () => {
         if (controller.phase === 'playing') completeNatural(id);
@@ -1281,19 +1277,6 @@
       return controller;
     }
 
-    function ensureVideoLoaded(sceneId) {
-      const id = Number(sceneId);
-      const controller = controllerFor(id);
-      const video = controller?.video;
-      if (!video) return false;
-      const layoutSource = window.JoeSceneRuntime?.layout?.layers?.[`scene${id}Video`]?.src;
-      const source = String(video.dataset.src || layoutSource || '').trim();
-      if (!source) return false;
-      if (video.getAttribute('src') !== source) video.setAttribute('src', source);
-      video.preload = 'auto';
-      try { video.load(); } catch (_) {}
-      return true;
-    }
 
     // Mac trackpads often emit a short run of very small pixel deltas before
     // their momentum becomes noticeable. Keep the one-gesture latch, but do
@@ -1632,7 +1615,6 @@
 
       if (id >= 2 && id <= 5) {
         const targetController = controllerFor(id);
-        if (id <= 4) ensureVideoLoaded(id);
         if (targetController) {
           await seekFirstFrame(targetController);
           targetController.phase = 'hold-start';

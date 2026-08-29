@@ -1327,14 +1327,7 @@
       el.style.width = `${s.width || 1920}px`;
       el.style.height = `${s.height || 1080}px`;
       el.style.objectFit = s.fit || 'cover';
-      const story = window.__joeSimpleVideoStory;
-      const activeVideoScene = Number(story?.getActiveDomainId?.());
-      const shouldLoadVideo = editMode || (story?.active === true && activeVideoScene === sceneOfLayer(s));
-      if (s.src) {
-        el.dataset.src = s.src;
-        if (shouldLoadVideo && el.getAttribute('src') !== s.src) el.setAttribute('src', s.src);
-        if (!shouldLoadVideo && el.getAttribute('src')) el.removeAttribute('src');
-      }
+      if (s.src && el.getAttribute('src') !== s.src) el.setAttribute('src', s.src);
       if (editMode) {
         // Edit Mode treats videos as still-frame sources. Removing the poster
         // ensures the decoded frame at currentTime is visible while scrubbing.
