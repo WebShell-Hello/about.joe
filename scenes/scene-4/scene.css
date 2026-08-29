@@ -1,0 +1,51 @@
+:root {
+  --scene4-stage-scale: 1;
+  --scene4-stage-left: 0px;
+  --scene4-stage-top: 0px;
+}
+.scene-four {
+  position: relative;
+  z-index: 1;
+  width: 100%;
+  height: 100dvh;
+  overflow: hidden;
+  background: transparent;
+}
+.scene-four-stage {
+  position: absolute;
+  left: var(--scene4-stage-left);
+  top: var(--scene4-stage-top);
+  width: 1920px;
+  height: 1080px;
+  transform: scale(var(--scene4-stage-scale));
+  transform-origin: 0 0;
+  overflow: visible;
+  user-select: none;
+}
+.scene-four-video {
+  position: absolute;
+  left: 0;
+  top: 0;
+  display: block;
+  width: 1920px;
+  height: 1080px;
+  object-fit: cover;
+  object-position: center center;
+  background: transparent;
+  pointer-events: none;
+  user-select: none;
+  transform-origin: 0 0;
+  will-change: transform;
+}
+.scene-four-stage .custom-text-layer,
+.scene-four-stage .custom-image-layer { position: absolute; }
+body.is-editing .scene-four { display: block; margin-top: 0; }
+body.is-editing .scene-four-video,
+body.is-editing .scene-four-stage .editable { pointer-events: auto; cursor: pointer; }
+body.is-editing .scene-four-stage { touch-action: pan-y; }
+
+/* Scene 4 sits one viewport behind Scene 3 so Scene 3 can fade away over it. */
+
+/* Scene 4 owns black on its sticky viewport so Scene 5 can be revealed beneath it. */
+.scene-four > .scene-runtime-hold { background:transparent; }
+body.is-editing .scene-four { background:#000; }

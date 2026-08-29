@@ -1,0 +1,81 @@
+:root {
+  --scene-w: 1402;
+  --scene-h: 1122;
+  --stage-scale: 1;
+  --stage-left: 0px;
+  --stage-top: 0px;
+  --xray-x: 470px;
+  --xray-y: 600px;
+  --xray-opacity: 0;
+  --bg-x: 50%;
+  --bg-y: 50%;
+  --bg-zoom: 1;
+}
+
+.scene-one-shell {
+  position: relative;
+  height: 180dvh;
+  background: #010309;
+  z-index: 1;
+}
+.scene-one-sticky {
+  position: sticky;
+  top: 0;
+  width: 100%;
+  height: 100dvh;
+  overflow: hidden;
+  background: #010309;
+}
+body.is-editing .scene-one-shell { height: 100dvh; }
+body.is-editing .scene-one-sticky {
+  position: relative;
+  top: auto;
+}
+
+/* Scene 1 background and artboard are viewport-contained. */
+.scene-one-shell .viewport-background {
+  position: absolute;
+  inset: 0;
+}
+.scene-one-shell .viewport-background > img {
+  transform: translate3d(0, var(--bg-scroll-y, 0px), 0) scale(var(--bg-zoom));
+}
+.scene-one-shell .viewport {
+  position: absolute;
+  inset: 0;
+}
+
+.scene-one-shell .digital-rain-canvas {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 0;
+  display: block;
+  pointer-events: none;
+  opacity: 1;
+  contain: strict;
+  will-change: contents;
+}
+body.is-editing .scene-one-shell .digital-rain-canvas {
+  display: none;
+}
+body.is-editing .design-stage { touch-action: pan-y; }
+
+.scene-transition-shade {
+  position: absolute;
+  inset: 0;
+  z-index: 3;
+  pointer-events: none;
+  opacity: var(--transition-shade-opacity, 0);
+  background: linear-gradient(
+    to bottom,
+    rgba(0,0,0,0) 34%,
+    rgba(0,0,0,.05) 50%,
+    rgba(0,0,0,.28) 72%,
+    rgba(0,0,0,.78) 91%,
+    #000 100%
+  );
+  will-change: opacity;
+}
+body.is-editing .scene-transition-shade { opacity: 0 !important; }

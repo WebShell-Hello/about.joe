@@ -1,0 +1,299 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
+  <meta name="color-scheme" content="dark" />
+  <title>Joe's Portfolio</title>
+  <link rel="preload" as="image" href="scenes/scene-1/assets/bg-night.png" />
+  <link rel="preload" as="image" href="scenes/scene-1/assets/character-main.png" />
+  <link rel="preload" as="image" href="scenes/scene-1/assets/character-perspective.png" />
+  <link rel="preload" as="image" href="scenes/scene-1/assets/character-bones.png" />
+  <link rel="preload" as="image" href="scenes/scene-1/assets/rock.png" />
+  <link rel="stylesheet" href="shared/style.css?v=57" />
+  <link rel="stylesheet" href="scenes/scene-1/scene.css?v=57" />
+  <link rel="stylesheet" href="scenes/scene-2/scene.css?v=57" />
+  <link rel="stylesheet" href="scenes/scene-3/scene.css?v=57" />
+  <link rel="stylesheet" href="scenes/scene-4/scene.css?v=57" />
+  <link rel="stylesheet" href="scenes/scene-5/scene.css?v=57" />
+  <link rel="stylesheet" href="scenes/scene-6/scene.css?v=57" />
+  <link rel="stylesheet" href="scenes/scene-7/scene.css?v=57" />
+</head>
+<body>
+  <a class="global-site-brand" id="globalSiteBrand" href="#home" data-nav-scene="1" aria-label="Home">JOSEPH</a>
+  <div class="global-site-menu">
+    <nav class="global-site-nav" id="globalSiteNav" aria-label="Portfolio navigation">
+      <a href="#home" data-nav-scene="1">Home</a>
+      <a href="#about" data-nav-scene="2">About</a>
+      <a href="#experience" data-nav-scene="3">Experience</a>
+      <a href="#skills" data-nav-scene="4">Skills</a>
+      <a href="#projects" data-nav-scene="5">Projects</a>
+      <a href="#blog" data-nav-scene="6">Blog</a>
+      <a href="#contact" data-nav-scene="7">Contact</a>
+    </nav>
+    <button class="site-language-switch" id="siteLanguageSwitch" type="button" data-ui-language-toggle aria-label="切换到中文" title="文/A">文/A</button>
+    <a class="admin-entry" id="adminEntry" href="./" aria-label="Open Scene editor">EDIT MODE</a>
+  </div>
+  <a class="preview-return-editor" id="previewReturnEditor" href="./" data-i18n="returnEditor">Return to editor</a>
+
+  <div class="story" id="story" aria-label="Story scenes"></div>
+
+  <aside class="editor" id="editor" aria-label="Scene editor">
+    <div class="editor-border-drag editor-border-top" data-editor-drag-border="top" aria-hidden="true"></div>
+    <div class="editor-border-drag editor-border-right" data-editor-drag-border="right" aria-hidden="true"></div>
+    <div class="editor-border-drag editor-border-bottom" data-editor-drag-border="bottom" aria-hidden="true"></div>
+    <div class="editor-border-drag editor-border-left" data-editor-drag-border="left" aria-hidden="true"></div>
+    <button class="editor-resize-handle" id="editorResizeHandle" type="button" aria-label="Resize editor" title="Resize editor"></button>
+    <div class="editor-scroll-shell" id="editorScrollShell">
+    <header class="editor-header" id="editorDragHandle">
+      <div class="editor-title-block">
+        <small id="editorSceneLabel">SCENE 1</small>
+        <div class="language-switch editor-language-switch" aria-label="Interface language">
+          <button type="button" data-ui-lang="zh">中文</button><span>/</span><button type="button" data-ui-lang="en">EN</button>
+        </div>
+      </div>
+
+      <div class="editor-actions editor-actions-primary" id="editorActionsControls">
+        <div class="save-choice-row">
+          <button class="primary save-return" id="saveLayout" data-i18n="saveReturn">Save</button>
+          <button class="discard-return" id="discardLayout" data-i18n="discardReturn">Don't save</button>
+        </div>
+        <div class="button-row">
+          <button id="exportLayout" data-i18n="exportJson">Export JSON</button>
+          <label class="file-button"><span data-i18n="importJson">Import JSON</span><input id="importLayout" type="file" accept="application/json,.json" /></label>
+        </div>
+        <button class="danger" id="resetLayout" data-i18n="resetDefaults">Reset to defaults</button>
+        <p class="save-status" id="saveStatus" data-i18n="saveStatusDefault">Editing uses a draft copy. Save commits it; Don't save restores the state from when Edit was opened. Both return home.</p>
+      </div>
+
+      <div class="editor-header-actions">
+        <button id="undoEdit" type="button" title="Undo (⌘/Ctrl+Z)" disabled>↶ Undo</button>
+        <button id="redoEdit" type="button" title="Redo (⇧⌘Z / Ctrl+Y)" disabled>↷ Redo</button>
+        <button id="collapseEditor" type="button" title="Collapse editor">− Collapse</button>
+        <a class="preview-link" id="previewLink" href="./" title="Open normal preview" data-i18n="preview">Preview</a>
+      </div>
+    </header>
+
+    <section class="editor-section scene-navigation" id="sceneNavigationControls">
+      <div class="section-title"><span data-i18n="editScene">Edit scene</span><span class="hint" id="currentSceneHint">Scene 1</span></div>
+      <div class="scene-jump-row">
+        <button type="button" data-scene-jump="1">第1幕</button>
+        <button type="button" data-scene-jump="2">第2幕</button>
+        <button type="button" data-scene-jump="3">第3幕</button>
+        <button type="button" data-scene-jump="4">第4幕</button>
+        <button type="button" data-scene-jump="5">第5幕</button>
+        <button type="button" data-scene-jump="6">第6幕</button>
+        <button type="button" data-scene-jump="7">第7幕</button>
+      </div>
+      <div class="scene-visibility-row"><button type="button" id="toggleSceneVisibility" data-i18n="hideScene">Hide current scene</button><span class="hint" id="sceneVisibilityStatus"></span></div>
+      <p class="asset-note" data-i18n="sceneEditNote">Only the current scene is shown in Edit Mode. Use the scene buttons above to switch scenes; page scrolling is disabled.</p>
+    </section>
+
+    <section class="editor-section site-settings" id="siteSettingsControls">
+      <div class="section-title"><span data-i18n="siteSettings">Site settings</span><span class="hint" data-i18n="browserTab">browser tab</span></div>
+      <div class="bilingual-text-grid site-title-grid">
+        <label class="stacked-field"><span data-i18n="titleEn">Title · English</span><input id="siteTitleEn" type="text" spellcheck="false" /></label>
+        <label class="stacked-field"><span data-i18n="titleZh">标题 · 中文</span><input id="siteTitleZh" type="text" spellcheck="false" /></label>
+      </div>
+      <p class="asset-note" data-i18n="siteTitleNote">The browser tab title follows the current website language.</p>
+    </section>
+
+    <section class="editor-section" id="layersControls">
+      <div class="section-title"><span data-i18n="layers">Layers</span><span class="hint" id="selectionCount">select / add</span></div>
+      <div class="add-layer-row">
+        <button id="addText" type="button" data-i18n="addText">+ Text</button>
+        <label class="file-button add-image-button"><span data-i18n="addImage">+ Image</span><input id="addImage" type="file" accept="image/png,image/jpeg,image/webp,image/gif,image/avif" /></label>
+      </div>
+      <div class="binding-row">
+        <button id="bindLayers" type="button" disabled data-i18n="bindSelected">Bind selected</button>
+        <button id="unbindLayers" type="button" disabled data-i18n="unbind">Unbind</button>
+      </div>
+      <p class="binding-note" data-i18n="bindingNote">Hold Command (⌘) while clicking the canvas or layer names to multi-select. Bound layers keep their relative position: moving any member moves the whole bound group by the same X / Y offset, and the group also scrolls together from Scene 1 → 2. Scale, rotation and appearance remain independently editable.</p>
+      <div class="layer-list" id="layerList"></div>
+    </section>
+
+    <section class="editor-section properties" id="propertiesPanel">
+      <div class="section-title"><span data-i18n="transform">Transform</span><span id="selectedName" class="hint">None</span></div>
+      <div class="property-grid">
+        <label>X <input id="propX" type="number" step="1" /></label>
+        <label>Y <input id="propY" type="number" step="1" /></label>
+        <label><span data-i18n="scale">Scale</span> <input id="propScale" type="number" step="0.01" min="0.02" max="8" /></label>
+        <label><span data-i18n="rotate">Rotate</span> <input id="propRotate" type="number" step="0.5" /></label>
+        <label><span data-i18n="opacity">Opacity</span> <input id="propOpacity" type="number" step="0.05" min="0" max="1" /></label>
+        <label><span data-i18n="zIndex">Layer</span> <input id="propZ" type="number" step="1" min="1" /></label>
+      </div>
+      <div class="layer-order-row">
+        <button id="sendBack" data-i18n="sendBack">Send back</button>
+        <output id="currentLayerRank" class="current-layer-rank" aria-label="Current layer">1</output>
+        <button id="bringFront" data-i18n="bringFront">Bring front</button>
+      </div>
+      <div class="button-row">
+        <button id="toggleVisible">Hide</button>
+        <button id="toggleLock">Lock</button>
+      </div>
+      <button class="danger layer-delete" id="deleteLayer" type="button" data-i18n="deleteLayer">Delete selected layer</button>
+    </section>
+
+
+    <section class="editor-section media-scale-controls" id="mediaScaleControls" hidden>
+      <div class="section-title"><span data-i18n="mediaScale">Media scale</span><span class="hint" id="mediaScaleOut">100%</span></div>
+      <div class="media-scale-row">
+        <input id="mediaScaleRange" type="range" min="0.1" max="4" step="0.01" value="1" aria-label="Media scale slider" />
+        <input id="mediaScaleNumber" type="number" min="0.02" max="8" step="0.01" value="1" aria-label="Media scale number" />
+        <span class="media-scale-unit">×</span>
+      </div>
+      <p class="asset-note" data-i18n="mediaScaleNote">Scale images or videos with the slider, or type an exact number directly.</p>
+    </section>
+
+    <section class="editor-section text-controls" id="textControls" hidden>
+      <div class="section-title"><span data-i18n="text">Text</span><span class="hint" data-i18n="spacesPreserved">spaces are preserved</span></div>
+      <div class="bilingual-text-grid">
+        <label class="stacked-field"><span data-i18n="contentEn">English</span><textarea id="textContentEn" rows="3" spellcheck="false"></textarea></label>
+        <label class="stacked-field"><span data-i18n="contentZh">中文</span><textarea id="textContentZh" rows="3" spellcheck="false"></textarea></label>
+      </div>
+      <label class="stacked-field"><span data-i18n="fontFamily">Font</span>
+        <select id="textFontFamily">
+          <option value="inherit">Inherit / Default</option>
+          <option value='"Helvetica Neue", Helvetica, Arial, sans-serif'>Helvetica Neue</option>
+          <option value='Arial, sans-serif'>Arial</option>
+          <option value='Georgia, serif'>Georgia</option>
+          <option value='"Times New Roman", Times, serif'>Times New Roman</option>
+          <option value='"Courier New", Courier, monospace'>Courier New</option>
+          <option value='-apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif'>System UI</option>
+        </select>
+      </label>
+      <div class="property-grid text-property-grid">
+        <label><span data-i18n="textBoxWidth">Text box width</span> <input id="textBoxWidth" type="number" min="40" max="3000" step="1" /></label>
+        <label><span data-i18n="fontSize">Font size</span> <input id="textFontSize" type="number" min="6" max="400" step="1" /></label>
+        <label><span data-i18n="weight">Weight</span> <input id="textFontWeight" type="number" min="100" max="900" step="10" /></label>
+        <label><span data-i18n="letterPx">Letter px</span> <input id="textLetterSpacing" type="number" min="-50" max="100" step="0.5" /></label>
+        <label><span data-i18n="lineHeight">Line height</span> <input id="textLineHeight" type="number" min="0.5" max="4" step="0.05" /></label>
+      </div>
+      <label class="color-row"><span data-i18n="color">Color</span> <input id="textColor" type="color" value="#ffffff" /><input id="textColorHex" type="text" value="#ffffff" maxlength="9" /></label>
+      <label class="stacked-field"><span data-i18n="align">Align</span>
+        <select id="textAlign">
+          <option value="left" data-i18n="alignLeft">Left</option>
+          <option value="center" data-i18n="alignCenter">Center</option>
+          <option value="right" data-i18n="alignRight">Right</option>
+        </select>
+      </label>
+      <div class="text-link-controls">
+        <div class="section-title"><span data-i18n="linkJump">Link / Jump</span><span class="hint" data-i18n="linkOptional">optional</span></div>
+        <label class="stacked-field"><span data-i18n="linkTarget">Target</span><input id="textLinkHref" type="text" placeholder="#about / https://... / mailto:..." /></label>
+        <div class="property-grid text-property-grid">
+          <label><span data-i18n="linkOpen">Open</span>
+            <select id="textLinkTarget">
+              <option value="_self" data-i18n="sameTab">Same tab</option>
+              <option value="_blank" data-i18n="newTab">New tab</option>
+            </select>
+          </label>
+          <label><span data-i18n="jumpOffset">Jump offset px</span><input id="textLinkOffset" type="number" step="1" min="-1000" max="1000" /></label>
+        </div>
+        <p class="asset-note" data-i18n="linkNote">Use #section-id for an internal jump, a full URL for a website, or mailto: for email. Links are disabled while Edit Mode is active.</p>
+      </div>
+    </section>
+
+    <section class="editor-section image-controls" id="imageControls" hidden>
+      <div class="section-title"><span data-i18n="image">Image</span><span id="imageInfo" class="hint"></span></div>
+      <div class="image-size-grid">
+        <label><span data-i18n="imageWidth">Width</span><input id="imageWidth" type="number" min="1" max="20000" step="1" /></label>
+        <label><span data-i18n="imageHeight">Height</span><input id="imageHeight" type="number" min="1" max="20000" step="1" /></label>
+      </div>
+      <div class="button-row image-size-actions">
+        <button id="restoreImageAspect" type="button" data-i18n="restoreAspect">Original ratio</button>
+        <button id="restoreImageSize" type="button" data-i18n="restoreSize">Original size</button>
+      </div>
+      <p class="asset-note image-size-note" data-i18n="imageSizeNote">New images use the uploaded file's real width/height ratio. Edit Width and Height independently, or drag a side handle, when intentional horizontal/vertical stretching is needed.</p>
+      <label class="range-row"><span data-i18n="brightness">Brightness</span><input id="imageBrightness" type="range" min="0.15" max="1.5" step="0.01" /><output id="imageBrightnessOut"></output></label>
+      <label class="range-row"><span data-i18n="contrast">Contrast</span><input id="imageContrast" type="range" min="0.4" max="1.8" step="0.01" /><output id="imageContrastOut"></output></label>
+      <label class="range-row"><span data-i18n="saturation">Saturation</span><input id="imageSaturation" type="range" min="0" max="1.8" step="0.01" /><output id="imageSaturationOut"></output></label>
+      <label class="range-row"><span data-i18n="hue">Hue</span><input id="imageHue" type="range" min="-180" max="180" step="1" /><output id="imageHueOut"></output></label>
+      <div class="image-rotate-row">
+        <button id="rotateImageLeft" type="button" data-i18n="rotateLeft">↶ 90°</button>
+        <button id="rotateImageRight" type="button" data-i18n="rotateRight">↷ 90°</button>
+        <button id="resetImageColor" type="button" data-i18n="resetColor">Reset color</button>
+      </div>
+      <p class="asset-note" data-i18n="imageNote">Color adjustments are non-destructive and are stored with the layout. Lower brightness and saturation to make daytime assets sit naturally in the night scene.</p>
+    </section>
+
+    <section class="editor-section video-controls" id="videoControls" hidden>
+      <div class="section-title"><span data-i18n="video">Video</span><span class="hint" id="videoSceneHint">第2幕</span></div>
+      <label class="stacked-field"><span data-i18n="replaceVideo">Replace selected video</span>
+        <span class="file-button full-file-button"><span data-i18n="chooseVideo">Choose video</span><input id="replaceSelectedVideo" type="file" accept="video/mp4,video/webm,video/quicktime,.mp4,.webm,.mov,.m4v" /></span>
+      </label>
+      <span id="videoFileInfo" class="asset-file-info"></span>
+      <label class="stacked-field"><span data-i18n="videoFit">Frame fit</span>
+        <select id="videoFit">
+          <option value="cover">Cover</option>
+          <option value="contain">Contain</option>
+          <option value="fill">Fill</option>
+        </select>
+      </label>
+      <label class="range-row"><span data-i18n="videoFrame">Video frame</span><input id="videoScrub" type="range" min="0" max="0" step="0.001" value="0" /><output id="videoScrubOut">0:00.000 / 0:00.000</output></label>
+      <label class="range-row"><span data-i18n="videoOpacity">Video opacity</span><input id="videoOpacity" type="range" min="0" max="1" step="0.01" value="1" /><output id="videoOpacityOut">100%</output></label>
+      <label class="range-row"><span data-i18n="videoSpeed">Playback speed</span><input id="videoSpeed" type="range" min="0.25" max="3" step="0.05" value="1" /><output id="videoSpeedOut">1.00×</output></label>
+      <div class="button-row">
+        <button id="resetSelectedVideo" type="button" data-i18n="resetVideo">First frame</button>
+      </div>
+      <p class="asset-note" data-i18n="videoNote">Edit mode always keeps video paused. Drag “Video frame” to inspect any frame; releasing the slider never starts playback. Opacity and playback speed are saved with the video layer.</p>
+    </section>
+
+    <section class="editor-section xray-controls" id="xrayControls">
+      <div class="section-title"><span data-i18n="xrayLens">X-ray lens</span><span class="hint" data-i18n="normalPreview">normal preview</span></div>
+      <label class="range-row"><span data-i18n="lensRadius">Lens radius</span><input id="xrayRadius" type="range" min="70" max="360" step="2" /><output id="xrayRadiusOut"></output></label>
+      <label class="range-row"><span data-i18n="feather">Feather</span><input id="xrayFeather" type="range" min="0" max="140" step="2" /><output id="xrayFeatherOut"></output></label>
+      <label class="range-row"><span data-i18n="triggerDist">Trigger dist.</span><input id="xrayActivationDistance" type="range" min="0" max="360" step="2" /><output id="xrayActivationDistanceOut"></output></label>
+      <label class="range-row" hidden aria-hidden="true"><span data-i18n="bodyInLens">Body in lens</span><input id="xrayMainOpacity" type="range" min="0" max="0" step="0.01" value="0" disabled /><output id="xrayMainOpacityOut">0%</output></label>
+      <label class="range-row"><span data-i18n="perspective">Perspective</span><input id="xrayPerspectiveOpacity" type="range" min="0" max="1" step="0.01" /><output id="xrayPerspectiveOpacityOut"></output></label>
+      <label class="range-row"><span data-i18n="rainDensity">Digital rain density</span><input id="digitalRainDensity" type="range" min="0.5" max="2.5" step="0.05" /><output id="digitalRainDensityOut"></output></label>
+      <label class="range-row"><span data-i18n="rainDigitSize">Digit size</span><input id="digitalRainDigitSize" type="range" min="0.55" max="1.8" step="0.05" /><output id="digitalRainDigitSizeOut"></output></label>
+      <label class="range-row"><span data-i18n="skeleton">Skeleton</span><input id="xrayBonesOpacity" type="range" min="0" max="1" step="0.01" /><output id="xrayBonesOpacityOut"></output></label>
+      <p class="asset-note" data-i18n="xrayNote">Lower “Body in lens” and the two overlay opacities to reveal text behind the character while keeping the X-ray readable.</p>
+    </section>
+
+    <section class="editor-section transition-controls" id="transitionControls">
+      <div class="section-title"><span data-i18n="sceneTransition">Scene transition</span><span class="hint">Scene 2 → 3</span></div>
+      <label class="range-row"><span data-i18n="travel">Travel</span><input id="transitionLift" type="range" min="0" max="900" step="5" /><output id="transitionLiftOut"></output></label>
+      <label class="range-row"><span data-i18n="foregroundSpeed">Foreground speed</span><input id="foregroundSpeed" type="range" min="0" max="2" step="0.05" /><output id="foregroundSpeedOut"></output></label>
+      <label class="range-row"><span data-i18n="backgroundSpeed">Background speed</span><input id="backgroundSpeed" type="range" min="0" max="1.5" step="0.05" /><output id="backgroundSpeedOut"></output></label>
+      <label class="range-row"><span data-i18n="bottomDarken">Bottom darken</span><input id="bottomShade" type="range" min="0" max="1" step="0.01" /><output id="bottomShadeOut"></output></label>
+      <label class="range-row"><span data-i18n="pageDwellRatio">Page dwell ratio</span><input id="pageDwellRatio" type="range" min="0" max="3" step="0.01" /><output id="pageDwellRatioOut"></output></label>
+      <label class="range-row" id="videoCrossfadeRow" hidden><span data-i18n="videoCrossfade">Video crossfade</span><input id="videoCrossfadeMs" type="range" min="0" max="1500" step="10" value="300" /><output id="videoCrossfadeMsOut">300ms</output></label>
+      <label class="range-row" id="videoPauseInertiaRow" hidden aria-hidden="true"><span data-i18n="videoPauseInertia">Up-scroll pause delay</span><input id="videoPauseInertiaMs" type="range" min="0" max="1200" step="10" value="180" /><output id="videoPauseInertiaMsOut">180ms</output></label>
+      <p class="asset-note" data-i18n="transitionNote">Foreground and background start moving upward together. Background speed is a ratio of foreground movement. The bottom darkening increases gradually as Scene 1 turns into Scene 2.</p>
+    </section>
+
+    <section class="editor-section scene-shade-controls" id="sceneShadeControls">
+      <div class="section-title"><span data-i18n="sceneEdgeDarken">Scene edge darken</span><span class="hint" id="sceneShadeHint">Scene 1</span></div>
+      <label class="range-row"><span data-i18n="topDarken">Top darken</span><input id="sceneTopShade" type="range" min="0" max="1" step="0.01" /><output id="sceneTopShadeOut"></output></label>
+      <label class="range-row"><span data-i18n="bottomDarken">Bottom darken</span><input id="sceneBottomShade" type="range" min="0" max="1" step="0.01" /><output id="sceneBottomShadeOut"></output></label>
+      <p class="asset-note" data-i18n="sceneShadeNote">Each scene stores its own top and bottom black gradient strength. Scene 1 bottom also drives the Scene 1 → 2 darkening in preview.</p>
+    </section>
+
+    <section class="editor-section background-controls" id="backgroundControls">
+      <div class="section-title"><span data-i18n="background">Main background</span><span class="hint" data-i18n="viewportCover">viewport cover</span></div>
+      <label class="stacked-field"><span data-i18n="replaceBackground">Replace current scene background</span>
+        <span class="file-button full-file-button"><span data-i18n="chooseImage">Choose image</span><input id="replaceBackgroundImage" type="file" accept="image/png,image/jpeg,image/webp,image/avif" /></span>
+      </label>
+      <span id="backgroundFileInfo" class="asset-file-info"></span>
+      <label class="range-row"><span data-i18n="positionX">Position X</span><input id="bgX" type="range" min="0" max="100" step="1" /><output id="bgXOut"></output></label>
+      <label class="range-row"><span data-i18n="positionY">Position Y</span><input id="bgY" type="range" min="0" max="100" step="1" /><output id="bgYOut"></output></label>
+      <label class="range-row"><span data-i18n="zoom">Zoom</span><input id="bgZoom" type="range" min="1" max="4" step="0.01" /><output id="bgZoomOut"></output></label>
+    </section>
+
+    <section class="editor-section" id="guidesControls">
+      <div class="section-title"><span data-i18n="centerGuides">Center guides</span><span class="hint" data-i18n="editorOnly">editor only</span></div>
+      <label class="switch-row"><input id="guidesToggle" type="checkbox" checked /> <span data-i18n="showGuides">Show center guides</span></label>
+    </section>
+
+
+    <footer class="editor-footer" id="editorFooterControls" data-i18n="keyboardHelp">
+      ⌘ + click = multi-select · Bound layers = move + scroll together<br />⌘/Ctrl+Z = Undo · ⇧⌘Z / Ctrl+Y = Redo · 20 edit steps<br />Arrow keys = 1px · Shift + Arrow = 10px
+    </footer>
+    </div>
+  </aside>
+
+  <script src="scenes/manifest.js?v=62"></script>
+  <script src="app.js?v=62"></script>
+</body>
+</html>

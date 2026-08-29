@@ -1,0 +1,1829 @@
+:root {
+  --scene-w: 1402;
+  --scene-h: 1122;
+  --stage-scale: 1;
+  --stage-left: 0px;
+  --stage-top: 0px;
+  --xray-x: 470px;
+  --xray-y: 600px;
+  --xray-opacity: 0;
+  --bg-x: 50%;
+  --bg-y: 50%;
+  --bg-zoom: 1;
+}
+
+* { box-sizing: border-box; }
+html, body { margin: 0; width: 100%; height: 100%; background: #010309; }
+body {
+  overflow: hidden;
+  font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
+  color: #f7f7f5;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: geometricPrecision;
+}
+button, input { font: inherit; }
+
+.viewport-background {
+  position: fixed;
+  inset: 0;
+  overflow: hidden;
+  background: #010309;
+  z-index: 0;
+}
+.viewport-background > img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: var(--bg-x) var(--bg-y);
+  transform: scale(var(--bg-zoom));
+  transform-origin: center;
+  user-select: none;
+  pointer-events: none;
+}
+.background-grade {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background:
+    radial-gradient(ellipse at 51% 47%, transparent 0 39%, rgba(0,0,0,.025) 62%, rgba(0,0,0,.16) 100%),
+    linear-gradient(to bottom, rgba(0,0,0,.08), transparent 27%, transparent 72%, rgba(0,0,0,.21));
+}
+
+.viewport {
+  position: relative;
+  width: 100vw;
+  height: 100dvh;
+  overflow: hidden;
+  isolation: isolate;
+  z-index: 1;
+}
+
+/* Foreground artboard uses CONTAIN, unlike the viewport-native background. */
+.design-stage {
+  position: absolute;
+  left: var(--stage-left);
+  top: var(--stage-top);
+  width: 1402px;
+  height: 1122px;
+  transform: scale(var(--stage-scale));
+  transform-origin: 0 0;
+  overflow: visible;
+  user-select: none;
+  touch-action: none;
+}
+
+.editable {
+  position: absolute;
+  left: 0;
+  top: 0;
+  transform-origin: 0 0;
+  will-change: auto;
+}
+.text-layer { margin: 0; white-space: pre; pointer-events: none; }
+.eyebrow-layer {
+  font-size: 88px;
+  line-height: .94;
+  font-weight: 760;
+  letter-spacing: -0.05em;
+}
+.title-layer {
+  font-size: 191px;
+  line-height: .88;
+  font-weight: 790;
+  letter-spacing: -0.067em;
+}
+.subtitle-layer {
+  font-size: 34px;
+  line-height: 1;
+  font-weight: 650;
+  letter-spacing: -0.035em;
+}
+
+.rock-layer {
+  width: 1536px;
+  height: 1024px;
+  object-fit: fill;
+  pointer-events: none;
+}
+.character-layer {
+  position: absolute;
+  left: 0;
+  top: 0;
+  display: block;
+  width: 941px;
+  height: 1672px;
+  object-fit: fill;
+  pointer-events: none;
+}
+.character-main-lens,
+.xray-layer {
+  opacity: 0;
+}
+.rock-layer,
+.character-layer,
+.custom-image-layer {
+  filter:
+    brightness(var(--img-brightness, 1))
+    contrast(var(--img-contrast, 1))
+    saturate(var(--img-saturation, 1))
+    hue-rotate(var(--img-hue, 0deg));
+}
+.character-main-lens,
+.character-perspective,
+.character-bones {
+  filter:
+    brightness(var(--img-brightness, 1))
+    contrast(var(--img-contrast, 1))
+    saturate(var(--img-saturation, 1))
+    hue-rotate(var(--img-hue, 0deg))
+    saturate(.94) contrast(1.06) brightness(1.02)
+    drop-shadow(0 0 10px rgba(118,174,255,.18));
+}
+
+.star-button {
+  appearance: none;
+  width: 39px;
+  height: 39px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: white;
+  cursor: pointer;
+}
+.star-button svg { width: 100%; height: 100%; overflow: visible; }
+.star-button path {
+  fill: transparent;
+  stroke: currentColor;
+  stroke-width: 3.2;
+  stroke-linejoin: round;
+  transition: fill .18s ease, transform .18s ease;
+  transform-origin: center;
+}
+.star-button:hover path,
+.star-button:focus-visible path { transform: scale(1.08); }
+.star-button.is-active path { fill: currentColor; }
+.star-button:focus-visible { outline: 2px solid rgba(255,255,255,.7); outline-offset: 5px; border-radius: 50%; }
+
+.scroll-cue {
+  width: 120px;
+  height: 98px;
+  display: flex;
+  align-items: center;
+  flex-direction: column;
+  pointer-events: none;
+}
+.scroll-cue span {
+  font-size: 14px;
+  line-height: 1;
+  letter-spacing: .34em;
+  font-weight: 500;
+  padding-left: .34em;
+  color: rgba(255,255,255,.92);
+}
+.scroll-cue i {
+  display: block;
+  width: 1px;
+  height: 58px;
+  margin-top: 17px;
+  background: linear-gradient(to bottom, rgba(255,255,255,.64), rgba(255,255,255,0));
+}
+
+.reference-overlay {
+  position: absolute;
+  inset: 0;
+  width: 1402px;
+  height: 1122px;
+  object-fit: fill;
+  z-index: 1800;
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+}
+.stage-guides {
+  position: absolute;
+  inset: 0;
+  z-index: 1900;
+  pointer-events: none;
+  opacity: 0;
+}
+.stage-guides i,
+.stage-guides b {
+  position: absolute;
+  display: block;
+  background: rgba(70, 190, 255, .4);
+}
+.stage-guides i { width: 1px; height: 100%; left: 50%; top: 0; }
+.stage-guides b { height: 1px; width: 100%; left: 0; top: 50%; }
+
+/* Editor-only selection UI lives in the design coordinate system. */
+.selection-box {
+  position: absolute;
+  left: 0;
+  top: 0;
+  z-index: 2000;
+  border: 2px solid #60a5fa;
+  transform-origin: 0 0;
+  display: none;
+  pointer-events: none;
+  box-shadow: 0 0 0 1px rgba(0,0,0,.35);
+}
+.selection-hit {
+  position: absolute;
+  inset: 0;
+  pointer-events: auto;
+  cursor: move;
+  background: rgba(96,165,250,.025);
+}
+.handle, .rotate-handle {
+  position: absolute;
+  width: 13px;
+  height: 13px;
+  margin: 0;
+  padding: 0;
+  border: 2px solid #60a5fa;
+  background: #fff;
+  border-radius: 50%;
+  pointer-events: auto;
+}
+.handle.nw { left: -7px; top: -7px; cursor: nwse-resize; }
+.handle.ne { right: -7px; top: -7px; cursor: nesw-resize; }
+.handle.e { right: -7px; top: calc(50% - 7px); cursor: ew-resize; }
+.handle.w { left: -7px; top: calc(50% - 7px); cursor: ew-resize; }
+.handle.n { left: calc(50% - 7px); top: -7px; cursor: ns-resize; }
+.handle.s { left: calc(50% - 7px); bottom: -7px; cursor: ns-resize; }
+.handle.sw { left: -7px; bottom: -7px; cursor: nesw-resize; }
+.edge-resize-handle, .media-edge-handle { display:none; }
+.selection-box.is-single-text .edge-resize-handle { display:block; }
+.selection-box.is-single-media .edge-resize-handle,
+.selection-box.is-single-media .media-edge-handle { display:block; }
+.handle.se { right: -7px; bottom: -7px; cursor: nwse-resize; }
+.rotation-stem {
+  position: absolute;
+  width: 1px;
+  height: 28px;
+  background: #60a5fa;
+  left: 50%;
+  bottom: 100%;
+  pointer-events: none;
+}
+.rotate-handle {
+  width: 15px;
+  height: 15px;
+  left: calc(50% - 7px);
+  bottom: calc(100% + 27px);
+  cursor: grab;
+}
+.selection-label {
+  position: absolute;
+  left: -2px;
+  bottom: calc(100% + 9px);
+  max-width: 220px;
+  padding: 4px 7px;
+  border-radius: 5px;
+  background: #2563eb;
+  color: #fff;
+  font: 600 12px/1.1 -apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+  white-space: nowrap;
+  pointer-events: none;
+}
+
+/* -------- Editor panel -------- */
+.editor {
+  position: fixed;
+  z-index: 5000;
+  top: 14px;
+  right: 14px;
+  width: 310px;
+  max-height: calc(100dvh - 28px);
+  overflow: auto;
+  color: #e5e7eb;
+  background: rgba(12, 16, 24, .94);
+  border: 1px solid rgba(255,255,255,.10);
+  border-radius: 14px;
+  box-shadow: 0 24px 80px rgba(0,0,0,.45);
+  backdrop-filter: blur(20px);
+  font-family: -apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+  display: none;
+}
+body.is-editing .editor { display: block; }
+body.is-editing .editable { pointer-events: auto; cursor: pointer; }
+body.is-editing .character-layer,
+body.is-editing .rock-layer,
+body.is-editing .text-layer,
+body.is-editing .scroll-cue { pointer-events: auto; }
+body.is-editing .character-main-lens { display: none !important; }
+body.is-editing .character-perspective,
+body.is-editing .character-bones { -webkit-mask-image: none !important; mask-image: none !important; }
+body.is-editing .star-button path { transition: none; }
+body.is-editing .stage-guides { opacity: 1; }
+
+.editor-header {
+  position: sticky;
+  top: 0;
+  z-index: 5;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 14px 12px;
+  background: rgba(12,16,24,.96);
+  border-bottom: 1px solid rgba(255,255,255,.08);
+}
+.editor-header small { display: block; font-size: 10px; color: #94a3b8; letter-spacing: .15em; }
+.editor-header strong { display: block; margin-top: 2px; font-size: 15px; }
+.preview-link {
+  color: #dbeafe;
+  text-decoration: none;
+  font-size: 12px;
+  padding: 7px 9px;
+  border-radius: 7px;
+  background: rgba(59,130,246,.18);
+  border: 1px solid rgba(96,165,250,.25);
+}
+.editor-section { padding: 12px 14px; border-bottom: 1px solid rgba(255,255,255,.075); }
+.section-title { display: flex; align-items: center; justify-content: space-between; margin-bottom: 9px; font-size: 12px; font-weight: 700; }
+.hint { color: #718096; font-size: 10px; font-weight: 500; }
+.layer-list { display: grid; gap: 4px; }
+.layer-row {
+  display: grid;
+  grid-template-columns: 26px 26px 1fr 26px;
+  align-items: center;
+  min-height: 34px;
+  padding: 0 5px;
+  border: 1px solid transparent;
+  border-radius: 7px;
+  background: transparent;
+}
+.layer-row:hover { background: rgba(255,255,255,.04); }
+.layer-row.is-selected { background: rgba(37,99,235,.18); border-color: rgba(96,165,250,.32); }
+.layer-row button {
+  width: 25px;
+  height: 25px;
+  border: 0;
+  border-radius: 5px;
+  background: transparent;
+  color: #94a3b8;
+  cursor: pointer;
+  padding: 0;
+}
+.layer-row button:hover { background: rgba(255,255,255,.06); color: white; }
+.layer-row .layer-name { font-size: 12px; cursor: pointer; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.layer-row.is-hidden .layer-name { opacity: .45; }
+.layer-row.is-locked .layer-name::after { content: " · locked"; color: #64748b; font-size: 10px; }
+
+.property-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 7px; }
+.property-grid label { display: grid; gap: 4px; color: #94a3b8; font-size: 10px; }
+.property-grid input {
+  width: 100%;
+  height: 30px;
+  border: 1px solid rgba(255,255,255,.1);
+  border-radius: 6px;
+  background: rgba(255,255,255,.055);
+  color: #f8fafc;
+  padding: 0 7px;
+  outline: none;
+}
+.property-grid input:focus { border-color: rgba(96,165,250,.7); }
+.properties.is-disabled { opacity: .45; pointer-events: none; }
+.button-row { display: grid; grid-template-columns: 1fr 1fr; gap: 7px; margin-top: 8px; }
+.editor button, .file-button {
+  min-height: 31px;
+  border: 1px solid rgba(255,255,255,.10);
+  border-radius: 7px;
+  background: rgba(255,255,255,.055);
+  color: #e5e7eb;
+  cursor: pointer;
+  padding: 6px 9px;
+  text-align: center;
+  font-size: 11px;
+}
+.editor button:hover, .file-button:hover { background: rgba(255,255,255,.09); }
+.editor button.primary { width: 100%; background: #2563eb; border-color: #3b82f6; color: white; font-weight: 700; }
+.editor button.danger { width: 100%; margin-top: 8px; color: #fca5a5; }
+.file-button input { display: none; }
+
+.range-row { display: grid; grid-template-columns: 78px 1fr 42px; gap: 7px; align-items: center; min-height: 28px; color: #cbd5e1; font-size: 11px; }
+.range-row input { width: 100%; }
+.range-row output { text-align: right; color: #94a3b8; font-variant-numeric: tabular-nums; }
+.switch-row { display: flex; gap: 8px; align-items: center; min-height: 28px; color: #cbd5e1; font-size: 11px; }
+.editor-actions { border-bottom: 0; }
+.save-status { margin: 9px 0 0; color: #64748b; font-size: 10px; line-height: 1.4; }
+.save-status.is-ok { color: #86efac; }
+.editor-footer { padding: 0 14px 14px; color: #64748b; font-size: 10px; line-height: 1.5; }
+
+@media (prefers-reduced-motion: no-preference) {
+  body:not(.is-editing) .text-layer { animation: copyIn .7s cubic-bezier(.2,.8,.2,1) both; }
+  body:not(.is-editing) .character-layer,
+  body:not(.is-editing) .rock-layer { animation: fgIn .75s cubic-bezier(.2,.8,.2,1) both; }
+}
+@keyframes copyIn { from { opacity: 0; filter: blur(2px); } }
+@keyframes fgIn { from { opacity: 0; } }
+
+@media (pointer: coarse) {
+  body:not(.is-editing) .character-main-lens,
+  body:not(.is-editing) .xray-layer { display: none; }
+}
+
+@media (max-width: 720px) {
+  .editor { width: calc(100vw - 20px); right: 10px; top: auto; bottom: 10px; max-height: 54dvh; }
+}
+
+/* -------- v4 content-management additions -------- */
+.admin-entry {
+  position: fixed;
+  top: 18px;
+  left: 18px;
+  z-index: 4500;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 32px;
+  padding: 0 11px;
+  border: 1px solid rgba(255,255,255,.16);
+  border-radius: 999px;
+  background: rgba(3,7,18,.42);
+  color: rgba(255,255,255,.82);
+  font: 650 10px/1 -apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+  letter-spacing: .12em;
+  text-decoration: none;
+  backdrop-filter: blur(14px);
+  box-shadow: 0 8px 28px rgba(0,0,0,.16);
+  transition: background .18s ease, color .18s ease, border-color .18s ease;
+}
+.admin-entry:hover,
+.admin-entry:focus-visible {
+  color: #fff;
+  background: rgba(15,23,42,.72);
+  border-color: rgba(255,255,255,.28);
+  outline: none;
+}
+body.is-editing .admin-entry { display: none; }
+
+.dynamic-layer-anchor { position: absolute; width: 0; height: 0; pointer-events: none; }
+.custom-text-layer {
+  white-space: pre;
+  min-width: 1px;
+  min-height: 1px;
+  pointer-events: none;
+}
+.custom-image-layer {
+  display: block;
+  max-width: none;
+  max-height: none;
+  pointer-events: none;
+  user-select: none;
+}
+body.is-editing .custom-text-layer,
+body.is-editing .custom-image-layer { pointer-events: auto; }
+
+.add-layer-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 7px;
+  margin-bottom: 9px;
+}
+.add-layer-row > button,
+.add-layer-row > .file-button {
+  min-height: 34px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0;
+  font-weight: 650;
+  color: #dbeafe;
+  background: rgba(37,99,235,.13);
+  border-color: rgba(96,165,250,.22);
+}
+.layer-kind {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  margin-right: 3px;
+  color: #64748b;
+  font-size: 10px;
+  font-weight: 800;
+}
+.layer-z {
+  font-size: 10px;
+  color: #64748b;
+  text-align: center;
+}
+.layer-delete { width: 100%; margin-top: 8px; }
+.layer-delete[hidden] { display: none !important; }
+
+.stacked-field {
+  display: grid;
+  gap: 5px;
+  color: #94a3b8;
+  font-size: 10px;
+}
+.stacked-field textarea,
+.stacked-field select,
+.color-row input[type="text"] {
+  width: 100%;
+  border: 1px solid rgba(255,255,255,.1);
+  border-radius: 7px;
+  background: rgba(255,255,255,.055);
+  color: #f8fafc;
+  padding: 7px 8px;
+  outline: none;
+  font: 12px/1.35 -apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+}
+.stacked-field textarea { resize: vertical; min-height: 66px; }
+.stacked-field textarea:focus,
+.stacked-field select:focus,
+.color-row input[type="text"]:focus { border-color: rgba(96,165,250,.7); }
+.text-property-grid { margin-top: 8px; }
+.color-row {
+  display: grid;
+  grid-template-columns: 54px 38px 1fr;
+  gap: 7px;
+  align-items: center;
+  min-height: 34px;
+  margin: 8px 0;
+  color: #94a3b8;
+  font-size: 10px;
+}
+.color-row input[type="color"] {
+  width: 38px;
+  height: 30px;
+  padding: 2px;
+  border: 1px solid rgba(255,255,255,.1);
+  border-radius: 6px;
+  background: rgba(255,255,255,.055);
+  cursor: pointer;
+}
+.asset-note {
+  margin: 0;
+  color: #8290a6;
+  font-size: 10px;
+  line-height: 1.5;
+}
+
+.image-size-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 7px;
+  margin-bottom: 7px;
+}
+.image-size-grid label {
+  display: grid;
+  gap: 4px;
+  color: #94a3b8;
+  font-size: 10px;
+}
+.image-size-grid input {
+  width: 100%;
+  height: 30px;
+  border: 1px solid rgba(255,255,255,.1);
+  border-radius: 6px;
+  background: rgba(255,255,255,.055);
+  color: #f8fafc;
+  padding: 0 7px;
+  outline: none;
+}
+.image-size-grid input:focus { border-color: rgba(96,165,250,.7); }
+.image-size-actions { margin: 0 0 7px; }
+.image-size-note { margin-bottom: 9px; }
+.full-file-button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  min-height: 34px;
+  margin-top: 2px;
+}
+.asset-file-info {
+  display: block;
+  min-height: 17px;
+  margin: 4px 0 8px;
+  color: #718096;
+  font-size: 9.5px;
+  line-height: 1.4;
+  overflow-wrap: anywhere;
+}
+.save-return { min-height: 37px !important; }
+
+.editor textarea,
+.editor select { font: inherit; }
+
+@media (max-width: 720px) {
+  .admin-entry { top: 12px; left: 12px; }
+}
+
+/* -------- v5: multi-layer editor, x-ray transparency, Scene 2 scroll -------- */
+body:not(.is-editing) {
+  overflow-x: hidden;
+  overflow-y: auto;
+}
+body.is-editing { overflow: hidden; }
+
+.story { position: relative; width: 100%; background: #000; }
+
+/* Preserve every space the editor stores, including repeated spaces. */
+.text-layer,
+.custom-text-layer {
+  white-space: pre;
+}
+
+/* X-ray is a true reveal: the normal body is removed under the lens so
+   lower-z text/background can remain visible through the translucent x-ray. */
+
+
+.binding-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 7px;
+  margin: 0 0 7px;
+}
+.binding-row button {
+  min-height: 32px;
+  color: #dbeafe;
+  background: rgba(76, 112, 255, .12);
+  border-color: rgba(125, 156, 255, .2);
+}
+.binding-row button:disabled {
+  cursor: not-allowed;
+  opacity: .38;
+}
+.binding-note {
+  margin: 0 0 9px;
+  color: #718096;
+  font-size: 9.5px;
+  line-height: 1.45;
+}
+.layer-row.is-bound .layer-name { color: #dbeafe; }
+.bound-mark { color: #7dd3fc; font-size: 9px; }
+.layer-row.is-selected {
+  background: rgba(37,99,235,.23);
+  border-color: rgba(96,165,250,.45);
+}
+
+.property-grid input:disabled {
+  opacity: .42;
+  cursor: not-allowed;
+}
+.selection-box {
+  background: rgba(96,165,250,.018);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  body:not(.is-editing) .text-layer,
+  body:not(.is-editing) .character-group,
+  body:not(.is-editing) .rock-layer { animation: none !important; }
+}
+
+
+/* -------- v7: horizontal draggable editor toolbar -------- */
+body.is-editing .editor {
+  display: flex;
+}
+.editor {
+  top: 14px;
+  left: 14px;
+  right: auto;
+  width: min(1380px, calc(100vw - 28px));
+  height: min(350px, calc(100dvh - 28px));
+  max-height: none;
+  flex-direction: row;
+  align-items: stretch;
+  overflow-x: auto;
+  overflow-y: hidden;
+  resize: none;
+  overscroll-behavior: contain;
+}
+.editor-header {
+  position: sticky;
+  left: 0;
+  top: 0;
+  flex: 0 0 218px;
+  width: 218px;
+  height: 100%;
+  padding: 14px;
+  flex-direction: column;
+  align-items: stretch;
+  justify-content: flex-start;
+  gap: 12px;
+  border-right: 1px solid rgba(255,255,255,.08);
+  border-bottom: 0;
+  cursor: default;
+  touch-action: auto;
+  user-select: auto;
+}
+.editor-header:active { cursor: default; }
+.editor-title-block { display: grid; gap: 2px; }
+.drag-hint { margin-top: 3px; color: #64748b; font-size: 9px; letter-spacing: .05em; }
+.editor-header-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+.editor-header-actions .preview-link { grid-column: 1 / -1; text-align: center; }
+.editor-header-actions button { min-height: 30px; padding: 5px 7px; }
+.editor-header-actions button:disabled { opacity: .35; cursor: not-allowed; }
+.editor-section {
+  position: relative;
+  flex: 0 0 290px;
+  width: 290px;
+  height: 100%;
+  padding: 12px 14px;
+  overflow-y: auto;
+  overflow-x: hidden;
+  border-right: 1px solid rgba(255,255,255,.075);
+  border-bottom: 0;
+}
+.editor-footer {
+  position: relative;
+  flex: 0 0 270px;
+  width: 270px;
+  height: 100%;
+  padding: 16px;
+  overflow-y: auto;
+  border-right: 0;
+}
+.editor.is-collapsed {
+  width: 218px !important;
+  height: 148px !important;
+  overflow: hidden;
+}
+.editor.is-collapsed .editor-section,
+.editor.is-collapsed .editor-footer { display: none !important; }
+.editor.is-collapsed .editor-header { flex-basis: 216px; width: 216px; border-right: 0; }
+.editor.is-collapsed .editor-header-actions { grid-template-columns: 1fr; }
+.editor.is-collapsed #undoEdit,
+.editor.is-collapsed #redoEdit,
+.editor.is-collapsed .preview-link { display: none; }
+
+@media (max-width: 720px) {
+  .editor {
+    left: 8px;
+    right: auto;
+    top: 8px;
+    bottom: auto;
+    width: calc(100vw - 16px);
+    height: min(330px, calc(100dvh - 16px));
+    max-height: none;
+  }
+  .editor-header { flex-basis: 185px; width: 185px; }
+  .editor-section { flex-basis: 260px; width: 260px; }
+}
+
+
+/* -------- v8: image grading, core image deletion, transition shade, i18n -------- */
+.scene-edge-shade {
+  position: absolute;
+  left: 0;
+  right: 0;
+  height: min(28dvh, 280px);
+  z-index: 3;
+  pointer-events: none;
+  opacity: 0;
+  will-change: opacity;
+}
+.scene-edge-shade-top {
+  top: 0;
+  background: linear-gradient(to bottom, #000 0%, rgba(0,0,0,.82) 18%, rgba(0,0,0,.34) 54%, rgba(0,0,0,0) 100%);
+}
+.scene-edge-shade-bottom {
+  bottom: 0;
+  background: linear-gradient(to top, #000 0%, rgba(0,0,0,.82) 18%, rgba(0,0,0,.34) 54%, rgba(0,0,0,0) 100%);
+}
+
+
+.language-switch {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  color: rgba(255,255,255,.45);
+  font: 650 10px/1 -apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+  user-select: none;
+}
+.language-switch button {
+  appearance: none;
+  border: 0;
+  padding: 0;
+  min-height: 0;
+  background: transparent;
+  color: rgba(255,255,255,.48);
+  cursor: pointer;
+  font: inherit;
+}
+.language-switch button:hover,
+.language-switch button.is-active { color: #fff; }
+.language-switch button.is-active { font-weight: 800; }
+.site-language-switch {
+  position: fixed;
+  top: 58px;
+  left: 24px;
+  z-index: 4500;
+  padding: 6px 8px;
+  border-radius: 999px;
+  background: rgba(3,7,18,.28);
+  backdrop-filter: blur(10px);
+}
+body.is-editing .site-language-switch { display: none; }
+.editor-language-switch {
+  justify-content: flex-start;
+  margin-top: 5px;
+  padding-top: 6px;
+  border-top: 1px solid rgba(255,255,255,.06);
+}
+.editor-language-switch button { color: #64748b; }
+.editor-language-switch button:hover,
+.editor-language-switch button.is-active { color: #e5e7eb; }
+
+.image-rotate-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1.35fr;
+  gap: 6px;
+  margin: 8px 0 9px;
+}
+.image-rotate-row button { min-width: 0; padding-inline: 5px; }
+
+html[lang^="zh"] .layer-row.is-locked .layer-name::after { content: " · 已锁定"; }
+
+@media (max-width: 720px) {
+  .site-language-switch { top: 50px; left: 16px; }
+}
+
+/* -------- v10 continuous layer numbers + direct numeric editing -------- */
+.layer-order-row {
+  display: grid;
+  grid-template-columns: 1fr 48px 1fr;
+  gap: 7px;
+  align-items: center;
+  margin-top: 8px;
+}
+.current-layer-rank {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 31px;
+  border: 1px solid rgba(96,165,250,.28);
+  border-radius: 7px;
+  background: rgba(37,99,235,.13);
+  color: #f8fafc;
+  font-size: 17px;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+}
+.current-layer-rank.is-multi { color: #64748b; font-size: 13px; }
+.layer-order-row button:disabled { opacity: .35; cursor: not-allowed; }
+
+.range-row output.editable-range-output {
+  min-width: 42px;
+  padding: 3px 4px;
+  border: 1px solid transparent;
+  border-radius: 5px;
+  cursor: text;
+  user-select: text;
+  outline: none;
+  white-space: nowrap;
+}
+.range-row output.editable-range-output:hover {
+  border-color: rgba(255,255,255,.10);
+  background: rgba(255,255,255,.045);
+  color: #e5e7eb;
+}
+.range-row output.editable-range-output:focus {
+  border-color: rgba(96,165,250,.7);
+  background: rgba(37,99,235,.12);
+  color: #fff;
+}
+
+body.is-editing .text-layer.is-inline-text-editing,
+body.is-editing .custom-text-layer.is-inline-text-editing {
+  pointer-events: auto;
+  cursor: text;
+  outline: 1px dashed rgba(96,165,250,.9);
+  outline-offset: 6px;
+  caret-color: #fff;
+  user-select: text;
+}
+
+
+/* -------- v11: transactional Save / Don't save -------- */
+.save-choice-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  width: 100%;
+}
+.editor .save-choice-row button { width: 100%; min-height: 37px; }
+.editor .discard-return {
+  background: rgba(148, 163, 184, .08);
+  border-color: rgba(203, 213, 225, .22);
+  color: #e2e8f0;
+  font-weight: 650;
+}
+.editor .discard-return:hover {
+  background: rgba(148, 163, 184, .14);
+  border-color: rgba(203, 213, 225, .34);
+}
+
+/* -------- v9: scrollable multi-scene edit mode + editable Scene 2 -------- */
+body.is-editing {
+  overflow-x: hidden;
+  overflow-y: auto;
+}
+body.is-editing .selection-box,
+body.is-editing .selection-box * { touch-action: none; }
+
+.scene-navigation { flex-basis: 300px; width: 300px; }
+.scene-jump-row { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; }
+.scene-jump-row button.is-active {
+  color: #fff;
+  background: rgba(37,99,235,.35);
+  border-color: rgba(96,165,250,.55);
+}
+.scene-navigation .asset-note { margin-top: 8px; }
+.video-controls { flex-basis: 300px; width: 300px; }
+
+
+
+/* -------- v14 modular scene loader -------- */
+.scene-load-error {
+  min-height: 100dvh;
+  display: grid;
+  place-content: center;
+  padding: 32px;
+  text-align: center;
+  color: #f8fafc;
+  background: #020617;
+  font: 500 15px/1.6 -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+}
+
+/* -------- Global portfolio chrome + Scene 4+ content system -------- */
+html { scroll-behavior: smooth; }
+.global-site-brand {
+  position: fixed;
+  top: 18px;
+  left: 20px;
+  z-index: 4600;
+  color: rgba(247,247,245,.90);
+  text-decoration: none;
+  font-size: 11px;
+  font-weight: 760;
+  letter-spacing: .20em;
+  line-height: 1;
+  text-transform: uppercase;
+  text-shadow: 0 1px 14px rgba(0,0,0,.45);
+}
+.global-site-brand:hover,.global-site-brand:focus-visible { color:#fff; outline:none; }
+.global-site-nav {
+  position: fixed;
+  top: 16px;
+  left: 50%;
+  z-index: 4550;
+  transform: translateX(-50%);
+  display: flex;
+  align-items: center;
+  gap: clamp(20px,2.7vw,42px);
+  padding: 4px 10px;
+  background: rgba(5,5,8,.10);
+  backdrop-filter: blur(8px);
+}
+.global-site-nav a {
+  position: relative;
+  color: rgba(247,247,245,.48);
+  text-decoration: none;
+  font-size: 9px;
+  font-weight: 620;
+  letter-spacing: .10em;
+  transition: color .18s ease;
+}
+.global-site-nav a::after {
+  content:'';
+  position:absolute;
+  left:0; right:100%; bottom:-7px;
+  height:1px;
+  background:rgba(255,255,255,.75);
+  transition:right .22s ease;
+}
+.global-site-nav a:hover,.global-site-nav a:focus-visible,.global-site-nav a.is-active { color:#f5f2eb; outline:none; }
+.global-site-nav a:hover::after,.global-site-nav a:focus-visible::after,.global-site-nav a.is-active::after { right:0; }
+.admin-entry { top: 42px; }
+.site-language-switch { top: 80px; left: 20px; }
+
+.portfolio-shell {
+  position: relative;
+  z-index: 2;
+  width: min(1320px, calc(100% - 11.2vw));
+  margin: 0 auto;
+}
+.portfolio-code {
+  color: rgba(245,242,235,.38);
+  font-size: 8px;
+  font-weight: 700;
+  letter-spacing: .15em;
+  text-transform: uppercase;
+}
+.portfolio-section { color:#f2efe9; }
+.portfolio-section-heading h2 {
+  max-width: 1050px;
+  margin: 13px 0 0;
+  font-size: clamp(52px,6.4vw,104px);
+  line-height: .91;
+  letter-spacing: -.062em;
+  font-weight: 610;
+}
+.portfolio-heading-split {
+  display:grid;
+  grid-template-columns:minmax(0,1fr) minmax(250px,.38fr);
+  gap:60px;
+  align-items:end;
+}
+.portfolio-heading-split > p {
+  margin:0 0 5px;
+  color:rgba(245,242,235,.43);
+  font-size:12px;
+  line-height:1.62;
+}
+.portfolio-reveal {
+  opacity: 0;
+  transform: translate3d(0,22px,0);
+  transition: opacity .72s cubic-bezier(.2,.8,.2,1), transform .72s cubic-bezier(.2,.8,.2,1);
+}
+.portfolio-reveal.is-visible { opacity:1; transform:translate3d(0,0,0); }
+body.is-editing .portfolio-reveal { opacity:1; transform:none; }
+
+@media (max-width: 820px) {
+  .portfolio-shell { width: calc(100% - 48px); }
+  .portfolio-heading-split { grid-template-columns:1fr; gap:25px; }
+}
+@media (max-width: 680px) {
+  .global-site-brand { top:15px; left:16px; }
+  .admin-entry { top:38px; left:12px; }
+  .site-language-switch { top:76px; left:12px; }
+  .global-site-nav { left:auto; right:10px; transform:none; gap:13px; padding-inline:6px; }
+  .site-language-switch { top: 76px; left: 12px; }
+  .global-site-nav a { font-size:7px; letter-spacing:.05em; }
+  .portfolio-shell { width: calc(100% - 36px); }
+}
+@media (prefers-reduced-motion: reduce) {
+  html { scroll-behavior:auto; }
+  .portfolio-reveal { opacity:1; transform:none; transition:none; }
+  .global-site-nav a::after { transition:none; }
+}
+
+/* v15: editable portfolio scenes */
+.scene-jump-row { grid-template-columns: repeat(4, minmax(74px, 1fr)); }
+body.is-editing [data-edit-stage] .portfolio-reveal { opacity: 1 !important; }
+body.is-editing [data-edit-stage] [data-layer-id] { cursor: text; }
+body.is-editing [data-edit-stage] [data-layer-id].is-inline-text-editing { outline: 1px dashed rgba(96,165,250,.7); outline-offset: 3px; }
+body.is-editing [data-edit-stage] a { cursor: default; }
+@media (max-width: 820px) { .scene-jump-row { grid-template-columns: repeat(2, minmax(86px,1fr)); } }
+
+/* -------- v16: bilingual text/link editor + resizable floating toolbar -------- */
+.bilingual-text-grid {
+  display: grid;
+  grid-template-columns: minmax(0,1fr) minmax(0,1fr);
+  gap: 8px;
+}
+.bilingual-text-grid textarea { min-height: 82px; }
+.text-link-controls {
+  margin-top: 12px;
+  padding-top: 11px;
+  border-top: 1px solid rgba(255,255,255,.08);
+}
+.text-link-controls input[type="text"],
+.text-link-controls input[type="number"],
+.text-link-controls select {
+  width: 100%;
+  min-height: 30px;
+  border: 1px solid rgba(255,255,255,.10);
+  border-radius: 6px;
+  background: rgba(255,255,255,.055);
+  color: #f8fafc;
+  padding: 0 7px;
+  outline: none;
+}
+.text-link-controls input:focus,
+.text-link-controls select:focus { border-color: rgba(96,165,250,.7); }
+
+body.is-editing .editor {
+  min-width: 360px;
+  min-height: 180px;
+  max-width: calc(100vw - 8px);
+  max-height: calc(100dvh - 8px);
+  border: 2px solid rgba(132, 170, 255, .64);
+  box-shadow: 0 0 0 1px rgba(255,255,255,.04), 0 24px 80px rgba(0,0,0,.50);
+}
+.editor-border-drag {
+  position: absolute;
+  z-index: 9000;
+  background: transparent;
+  touch-action: none;
+  cursor: move;
+}
+.editor-border-top { left: 0; right: 0; top: 0; height: 2px; }
+.editor-border-bottom { left: 0; right: 20px; bottom: 0; height: 2px; }
+.editor-border-left { left: 0; top: 0; bottom: 0; width: 2px; }
+.editor-border-right { right: 0; top: 0; bottom: 20px; width: 2px; }
+.editor-resize-handle {
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  z-index: 9100;
+  width: 20px;
+  height: 20px;
+  min-height: 0 !important;
+  padding: 0 !important;
+  border: 0 !important;
+  border-radius: 0 0 12px 0 !important;
+  background:
+    linear-gradient(135deg, transparent 0 48%, rgba(160,190,255,.8) 49% 54%, transparent 55% 65%, rgba(160,190,255,.52) 66% 71%, transparent 72%) !important;
+  cursor: nwse-resize !important;
+  touch-action: none;
+}
+.editor.is-collapsed .editor-resize-handle { display: none; }
+.editor.is-collapsed .editor-border-drag { display: block; }
+.editor.is-collapsed .editor-border-top,
+.editor.is-collapsed .editor-border-bottom { height: 6px; }
+.editor.is-collapsed .editor-border-left,
+.editor.is-collapsed .editor-border-right { width: 6px; }
+.editor.is-collapsed .editor-header { cursor: move; }
+.editor.is-collapsed .editor-header button,
+.editor.is-collapsed .editor-header a { cursor: pointer; }
+
+/* Website links must behave as ordinary text while editing. */
+body.is-editing .story a,
+body.is-editing .global-site-brand,
+body.is-editing .global-site-nav a {
+  cursor: text !important;
+  pointer-events: auto;
+}
+body.is-editing .story a:hover,
+body.is-editing .story a:focus-visible,
+body.is-editing .global-site-brand:hover,
+body.is-editing .global-site-nav a:hover {
+  transform: none !important;
+}
+
+@media (max-width: 760px) {
+  .bilingual-text-grid { grid-template-columns: 1fr; }
+}
+body:not(.is-editing) [data-layer-id].has-configured-link:not(a) { cursor: pointer; }
+
+
+/* -------- v15: precise editor dragging, module resizing, draft preview -------- */
+.editor-section,
+.editor-footer {
+  position: relative;
+}
+.editor-section-resizer {
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  width: 5px;
+  z-index: 8500;
+  cursor: ew-resize;
+  touch-action: none;
+  background: transparent;
+}
+.editor-section-resizer:hover {
+  background: rgba(132,170,255,.24);
+}
+.editor.is-collapsed .editor-section-resizer { display: none; }
+.site-title-grid input {
+  width: 100%;
+  min-height: 34px;
+  border: 1px solid rgba(255,255,255,.1);
+  border-radius: 7px;
+  background: rgba(255,255,255,.055);
+  color: #f8fafc;
+  padding: 7px 8px;
+  outline: none;
+  font: 12px/1.35 -apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+}
+.site-title-grid input:focus { border-color: rgba(96,165,250,.7); }
+.preview-return-editor {
+  position: fixed;
+  top: 18px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 5600;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  min-height: 34px;
+  padding: 0 14px;
+  border: 1px solid rgba(255,255,255,.18);
+  border-radius: 999px;
+  background: rgba(7,10,18,.82);
+  color: #fff;
+  text-decoration: none;
+  font: 650 11px/1 -apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+  backdrop-filter: blur(14px);
+}
+body.is-previewing .preview-return-editor { display: inline-flex; }
+body.is-previewing .admin-entry { display: none !important; }
+body.is-previewing .editor { display: none !important; }
+
+/* Only the visible 2px outer border moves the whole editor. */
+body.is-editing .editor-border-drag {
+  background: rgba(132,170,255,.64);
+}
+.editor.is-collapsed .editor-header {
+  width: 216px !important;
+  flex-basis: 216px !important;
+}
+
+/* -------- v18: keep editor chrome fixed while module strip scrolls --------
+   The outer editor is a non-scrolling viewport. Only the inner module strip
+   scrolls horizontally, so the right border and resize handle stay pinned. */
+body.is-editing .editor {
+  overflow: hidden !important;
+  display: block;
+}
+.editor-scroll-shell {
+  position: relative;
+  display: flex;
+  flex-direction: row;
+  align-items: stretch;
+  width: 100%;
+  height: 100%;
+  min-width: 0;
+  min-height: 0;
+  overflow-x: auto;
+  overflow-y: hidden;
+  overscroll-behavior: contain;
+  scrollbar-gutter: stable;
+}
+.editor-border-drag,
+.editor-resize-handle {
+  position: absolute;
+}
+.editor-border-right {
+  right: 0;
+  top: 0;
+  bottom: 20px;
+}
+.editor-resize-handle {
+  right: 0;
+  bottom: 0;
+}
+.editor.is-collapsed .editor-scroll-shell {
+  overflow: hidden;
+}
+
+/* v20: stable x-ray compositing across Safari/Chrome. */
+#characterMain,
+#characterMainLens,
+#characterPerspective,
+#characterBones {
+  -webkit-backface-visibility: hidden;
+  backface-visibility: hidden;
+  isolation: isolate;
+}
+
+/* v21: keep commit/import controls in the first editor module. */
+.editor-header {
+  overflow-y: auto;
+  overflow-x: hidden;
+}
+.editor-header .editor-actions-primary {
+  display: grid;
+  gap: 8px;
+  width: 100%;
+  padding: 10px 0 12px;
+  border-top: 1px solid rgba(255,255,255,.075);
+  border-bottom: 1px solid rgba(255,255,255,.075);
+}
+.editor-header .editor-actions-primary .button-row {
+  margin-top: 0;
+}
+.editor-header .editor-actions-primary .danger {
+  margin-top: 0;
+}
+.editor-header .editor-actions-primary .save-status {
+  margin-top: 2px;
+}
+.editor.is-collapsed .editor-actions-primary {
+  display: none;
+}
+
+
+/* v19: per-scene backgrounds + scene visibility */
+.scene-managed-background{position:absolute;inset:0;z-index:-1;overflow:hidden;pointer-events:none}.scene-managed-background>img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:var(--scene-bg-x,50%) var(--scene-bg-y,50%);transform:translate3d(0,var(--scene-bg-scroll-y,0px),0) scale(var(--scene-bg-zoom,1));transform-origin:center;user-select:none}.story>section{isolation:isolate}body.is-editing .scene-hidden-in-editor{outline:2px dashed rgba(248,113,113,.85);outline-offset:-2px}.scene-hidden-edit-badge{display:none;position:absolute;top:12px;left:50%;z-index:2600;transform:translateX(-50%);padding:6px 10px;border:1px solid rgba(248,113,113,.55);border-radius:999px;background:rgba(20,4,6,.82);color:#fecaca;font:700 10px/1 -apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;letter-spacing:.06em;pointer-events:none}body.is-editing .scene-hidden-in-editor>.scene-hidden-edit-badge{display:block}.scene-jump-row button.is-scene-hidden{opacity:.48;text-decoration:line-through}.scene-visibility-row{display:flex;align-items:center;gap:8px;margin-top:8px}.scene-visibility-row button{flex:1;min-height:31px}
+/* Let per-scene backgrounds show through video letterboxing / transformed video layers. */
+.scene-two-video,
+.scene-three-video,
+.scene-four-video { background: transparent; }
+
+/* v20: per-scene edge fades and exit transitions */
+.story>section .scene-transition-shade{position:absolute;inset:0;z-index:4;pointer-events:none;opacity:0;background:linear-gradient(to bottom,rgba(0,0,0,0) 34%,rgba(0,0,0,.05) 50%,rgba(0,0,0,.28) 72%,rgba(0,0,0,.78) 91%,#000 100%);will-change:opacity}.story>section .scene-edge-shade{z-index:5}body.is-editing .story>section .scene-transition-shade{opacity:0!important}.story>section{position:relative}
+
+/* v21 — per-scene dwell / retention pinning */
+.scene-runtime-hold{position:sticky;top:0;min-height:100dvh;isolation:isolate;}
+body.is-editing .scene-runtime-hold{position:relative;top:auto;}
+.scene-runtime-hold>.scene-managed-background{z-index:-1;}
+
+/* v22 — seamless mode restoration and initial text reveal */
+html.portfolio-booting .story,
+html.restoring-view body { visibility: hidden; }
+
+
+/* v23 — shared layer peers + deterministic initial text reveal */
+html:not(.portfolio-text-entry-started) .runtime-text-entry { opacity: 0 !important; }
+html.portfolio-text-entry-running .runtime-text-entry {
+  transition: opacity .5s cubic-bezier(.22,.7,.25,1) !important;
+}
+body.is-editing .runtime-text-entry { transition: none !important; }
+
+/* v25 — deterministic scroll tracks for pinned video scenes.
+   The parent scene owns the dwell distance; the hold remains exactly one viewport high. */
+.scene-two > .scene-runtime-hold,
+.scene-three > .scene-runtime-hold,
+.scene-four > .scene-runtime-hold {
+  height: 100dvh;
+  min-height: 100dvh;
+  max-height: 100dvh;
+}
+
+
+/* v29 — Scene 2→3 and Scene 3→4 layer crossfades */
+.scene-two > .scene-runtime-hold,
+.scene-three > .scene-runtime-hold,
+.scene-four > .scene-runtime-hold { will-change: opacity, transform; }
+body.is-editing .scene-two > .scene-runtime-hold,
+body.is-editing .scene-three > .scene-runtime-hold,
+body.is-editing .scene-four > .scene-runtime-hold { opacity: 1 !important; transform: none !important; }
+
+/* v29 — dedicated image/video scale control with exact numeric entry. */
+.media-scale-row{display:grid;grid-template-columns:minmax(110px,1fr) 74px 14px;align-items:center;gap:7px;margin-top:7px}.media-scale-row input[type="number"]{width:100%;min-width:0}.media-scale-unit{color:#94a3b8;font-size:11px}.media-scale-controls .section-title .hint{font-variant-numeric:tabular-nums}
+
+/* v31 — runtime directional video stream swap; reverse is manual-only. The reverse stream mirrors the
+   editable forward video's layout but is never selectable in Edit Mode. */
+.runtime-direction-hidden { visibility: hidden !important; }
+.runtime-reverse-video { pointer-events: none !important; }
+
+/* v33 — cinematic intent controller: wheel input is handled by JS inside video scenes. */
+body:not(.is-editing) .scene-two, body:not(.is-editing) .scene-three, body:not(.is-editing) .scene-four { overscroll-behavior: contain; }
+
+/* v36 — Scene 2 bottom-mask seam fix.
+   Safari/sub-pixel compositing can expose the transformed video in the final device pixel.
+   Keep the gradient itself flush with the viewport and seal the final 5 CSS px independently. */
+.scene-two .scene-edge-shade-bottom {
+  bottom: 0 !important;
+  height: calc(min(28dvh, 280px) + 6px);
+}
+body:not(.is-editing) .scene-two > .scene-runtime-hold::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 5px;
+  z-index: 40;
+  pointer-events: none;
+  background: #000;
+}
+
+/* v40 — hard-locked cinematic stack for Scenes 2–5.
+   The shell owns one viewport in normal document flow. The inner stack becomes
+   fixed while a cinematic chapter is active, so Safari/trackpad momentum can
+   change scrollY behind it without ever moving Scene 2 visually. */
+body:not(.is-editing) .cinematic-stack-shell {
+  position: relative;
+  width: 100%;
+  height: 100dvh;
+  min-height: 100dvh;
+  max-height: 100dvh;
+  overflow: visible;
+  background: #000;
+  isolation: isolate;
+}
+body:not(.is-editing) .cinematic-stack {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100dvh;
+  min-height: 100dvh;
+  max-height: 100dvh;
+  overflow: hidden;
+  isolation: isolate;
+  background: #000;
+  overscroll-behavior-y: none;
+}
+body:not(.is-editing) .cinematic-stack.is-locked {
+  position: fixed !important;
+  inset: 0 !important;
+  top: 0 !important;
+  left: 0 !important;
+  right: 0 !important;
+  bottom: auto !important;
+  z-index: 120;
+  transform: translateZ(0);
+  -webkit-transform: translateZ(0);
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+}
+html:has(body.cinematic-stack-locked),
+body.cinematic-stack-locked {
+  overscroll-behavior-y: none;
+}
+body:not(.is-editing) .cinematic-stack > section {
+  position: absolute !important;
+  inset: 0 !important;
+  width: 100% !important;
+  height: 100dvh !important;
+  min-height: 100dvh !important;
+  max-height: 100dvh !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  overflow: hidden !important;
+  box-sizing: border-box !important;
+  isolation: isolate;
+}
+body:not(.is-editing) .cinematic-stack > .scene-two { z-index: 40 !important; }
+body:not(.is-editing) .cinematic-stack > .scene-three { z-index: 30 !important; }
+body:not(.is-editing) .cinematic-stack > .scene-four { z-index: 20 !important; }
+body:not(.is-editing) .cinematic-stack > .scene-five { z-index: 10 !important; }
+body:not(.is-editing) .cinematic-stack > section > .scene-runtime-hold {
+  position: absolute !important;
+  inset: 0 !important;
+  top: 0 !important;
+  width: 100% !important;
+  height: 100dvh !important;
+  min-height: 100dvh !important;
+  max-height: 100dvh !important;
+  margin: 0 !important;
+  transform: none !important;
+  overflow: hidden !important;
+}
+/* Past scene media/text can remain in the DOM for caption carry-over, but its
+   independent background/edge chrome must not accumulate over the active scene. */
+body:not(.is-editing) .cinematic-stack > section.cinematic-scene-past > .scene-runtime-hold > .scene-managed-background,
+body:not(.is-editing) .cinematic-stack > section.cinematic-scene-past > .scene-runtime-hold > .scene-edge-shade,
+body:not(.is-editing) .cinematic-stack > section.cinematic-scene-past > .scene-runtime-hold > .scene-transition-shade {
+  opacity: 0 !important;
+  visibility: hidden !important;
+}
+body:not(.is-editing) .cinematic-stack > .scene-two.cinematic-scene-past > .scene-runtime-hold::after {
+  opacity: 0 !important;
+}
+/* Shared runtime effects also work when scenes are nested in the stack rather
+   than being direct children of .story. */
+.cinematic-stack > section .scene-transition-shade {
+  position: absolute;
+  inset: 0;
+  z-index: 4;
+  pointer-events: none;
+}
+
+
+/* v40 — true final-frame freeze used only during Scene 2→3 / 3→4 / 4→5 crossfades. */
+body:not(.is-editing) .cinematic-frozen-frame {
+  pointer-events: none !important;
+  user-select: none !important;
+  will-change: opacity, transform;
+}
+
+/* v41 — first-frame still used for soft rewind-to-start transitions.
+   It mirrors the video's inline geometry and sits above it only during the short fade. */
+body:not(.is-editing) .cinematic-first-frame {
+  pointer-events: none !important;
+  user-select: none !important;
+  -webkit-user-drag: none;
+  will-change: opacity, transform;
+}
+
+
+/* v42 — inertial-entry hardening for the shared cinematic stack.
+   While Scenes 2–5 are story-locked, the root scroller itself is frozen. Wheel
+   input still reaches the capture handler, but Safari/Chrome can no longer move
+   the document behind the fixed stack or rubber-band its edge masks. */
+html.cinematic-scroll-locked {
+  overflow-y: hidden !important;
+  overscroll-behavior-y: none !important;
+  scrollbar-gutter: stable;
+}
+html.cinematic-scroll-locked body {
+  overscroll-behavior-y: none !important;
+}
+body:not(.is-editing) .cinematic-stack.is-locked {
+  height: var(--cinematic-locked-height, 100dvh) !important;
+  min-height: var(--cinematic-locked-height, 100dvh) !important;
+  max-height: var(--cinematic-locked-height, 100dvh) !important;
+  contain: layout paint;
+}
+body:not(.is-editing) .cinematic-stack.is-locked > section,
+body:not(.is-editing) .cinematic-stack.is-locked > section > .scene-runtime-hold {
+  height: var(--cinematic-locked-height, 100dvh) !important;
+  min-height: var(--cinematic-locked-height, 100dvh) !important;
+  max-height: var(--cinematic-locked-height, 100dvh) !important;
+  transform: none !important;
+}
+/* Edge masks are viewport chrome, not scroll animation. Never let a compositor
+   transform/transition them during a hard lock. */
+body:not(.is-editing) .cinematic-stack.is-locked .scene-edge-shade,
+body:not(.is-editing) .cinematic-stack.is-locked .scene-transition-shade {
+  transform: none !important;
+  transition: none !important;
+  animation: none !important;
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+}
+/* Scene 1 is physically above the stack in the document. Hide it only while the
+   cinematic viewport is hard-locked so its bottom transition/shade can never
+   composite over Scene 2 during a high-momentum entry. It is restored before
+   native upward scrolling is released from Scene 2 frame 1. */
+body.cinematic-stack-locked:not(.is-editing) .scene-one-shell {
+  visibility: hidden !important;
+}
+body:not(.is-editing) .cinematic-stack.is-locked > section > .scene-runtime-hold {
+  transition: none !important;
+  animation: none !important;
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+}
+
+/* v43 — visual-first Scene 1 → 2 commit.
+   Before the underlying document scroll is corrected, the cinematic stack is
+   already pinned over the viewport and Scene 1 is hidden. This removes the
+   one-frame split composition (Scene 1 above / Scene 2 below) that can appear
+   under high wheel/trackpad momentum in Safari and Chrome. */
+body:not(.is-editing) .cinematic-stack.is-entry-committing {
+  position: fixed !important;
+  inset: 0 !important;
+  top: 0 !important;
+  left: 0 !important;
+  right: 0 !important;
+  bottom: auto !important;
+  width: 100% !important;
+  height: var(--cinematic-locked-height, 100dvh) !important;
+  min-height: var(--cinematic-locked-height, 100dvh) !important;
+  max-height: var(--cinematic-locked-height, 100dvh) !important;
+  z-index: 121 !important;
+  overflow: hidden !important;
+  transform: translateZ(0) !important;
+  -webkit-transform: translateZ(0) !important;
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+  contain: layout paint;
+}
+body.cinematic-entry-committing:not(.is-editing) .scene-one-shell {
+  visibility: hidden !important;
+}
+body:not(.is-editing) .cinematic-stack.is-entry-committing > section,
+body:not(.is-editing) .cinematic-stack.is-entry-committing > section > .scene-runtime-hold {
+  height: var(--cinematic-locked-height, 100dvh) !important;
+  min-height: var(--cinematic-locked-height, 100dvh) !important;
+  max-height: var(--cinematic-locked-height, 100dvh) !important;
+  transform: none !important;
+}
+
+/* v44 — strict per-scene interaction domains.
+   A scene may remain visible/preloaded outside its domain, but it cannot receive
+   pointer interaction until the story engine explicitly hands ownership to it. */
+body:not(.is-editing) section.interaction-domain-inactive {
+  pointer-events: none !important;
+}
+body:not(.is-editing) section.interaction-domain-active {
+  pointer-events: auto;
+}
+body:not(.is-editing) .cinematic-stack > section.interaction-domain-inactive * {
+  pointer-events: none !important;
+}
+
+
+/* v45 — visual domain isolation hardening.
+   Scene 1 must never composite over the cinematic stack once ownership has
+   moved to Scene 2–5. During the physical Scene 5 → 6 exit, Scene 5 still owns
+   the domain until Scene 6 is actually reached, so Scene 1 remains suppressed
+   for the entire stack exit as well. */
+body:not(.is-editing)[data-active-domain="scene-2"] .scene-one-shell,
+body:not(.is-editing)[data-active-domain="scene-3"] .scene-one-shell,
+body:not(.is-editing)[data-active-domain="scene-4"] .scene-one-shell,
+body:not(.is-editing)[data-active-domain="scene-5"] .scene-one-shell,
+body.cinematic-stack-exiting:not(.is-editing) .scene-one-shell {
+  opacity: 0 !important;
+  visibility: hidden !important;
+  pointer-events: none !important;
+}
+
+/* While the stack is physically leaving for Scene 6, do not let a temporary
+   overflow/layout event re-pin it or animate any edge chrome. */
+body:not(.is-editing) .cinematic-stack.is-exiting-forward {
+  transition: none !important;
+  animation: none !important;
+}
+body:not(.is-editing) .cinematic-stack.is-exiting-forward .scene-edge-shade,
+body:not(.is-editing) .cinematic-stack.is-exiting-forward .scene-transition-shade {
+  transform: none !important;
+  transition: none !important;
+  animation: none !important;
+}
+
+/* -------- v46 navigation-driven portfolio --------
+   Normal browsing never uses native page wheel/trackpad scrolling. One discrete
+   vertical wheel/trackpad gesture is converted into exactly one adjacent-scene
+   navigation request; the document itself remains programmatically scrollable. */
+html.portfolio-navigation-driven {
+  scroll-behavior: auto !important;
+  overscroll-behavior: none !important;
+  scrollbar-width: none;
+}
+html.portfolio-navigation-driven::-webkit-scrollbar {
+  width: 0;
+  height: 0;
+  display: none;
+}
+body.portfolio-navigation-driven:not(.is-editing) {
+  overscroll-behavior: none !important;
+  touch-action: none;
+}
+body.portfolio-navigation-driven:not(.is-editing) .scroll-cue {
+  opacity: 0 !important;
+  visibility: hidden !important;
+}
+
+/* One-line primary navigation: JOSEPH + seven sections. */
+.global-site-brand {
+  top: 20px;
+  left: 22px;
+  font-size: 10px;
+  letter-spacing: .18em;
+}
+.global-site-nav {
+  top: 14px;
+  left: 112px;
+  right: auto;
+  transform: none;
+  gap: clamp(14px, 1.55vw, 28px);
+  padding: 6px 10px;
+  border-radius: 999px;
+  background: rgba(4, 5, 8, .10);
+  white-space: nowrap;
+}
+.global-site-nav a {
+  font-size: clamp(8px, .62vw, 10px);
+  letter-spacing: .075em;
+}
+.admin-entry { top: 48px; }
+.site-language-switch { top: 86px; }
+
+@media (max-width: 980px) {
+  .global-site-nav {
+    left: 102px;
+    gap: 10px;
+    padding-inline: 4px;
+  }
+  .global-site-nav a { font-size: 7px; letter-spacing: .035em; }
+}
+
+
+/* -------- v48 centered, enlarged primary navigation -------- */
+.global-site-menu {
+  position: fixed;
+  top: 16px;
+  left: 50%;
+  z-index: 4650;
+  transform: translateX(-50%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: clamp(22px, 2.15vw, 36px);
+  width: max-content;
+  max-width: calc(100vw - 220px);
+  white-space: nowrap;
+}
+.global-site-menu .global-site-nav {
+  position: relative;
+  inset: auto;
+  transform: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: clamp(22px, 2.15vw, 36px);
+  padding: 5px 0;
+  background: transparent;
+  backdrop-filter: none;
+  border-radius: 0;
+}
+.global-site-menu .global-site-nav a {
+  font-size: clamp(14px, .95vw, 16px);
+  font-weight: 620;
+  letter-spacing: .045em;
+  line-height: 1;
+}
+.global-site-menu .admin-entry {
+  position: relative;
+  inset: auto;
+  min-height: 30px;
+  padding: 0 10px;
+  flex: 0 0 auto;
+  font-size: clamp(12px, .82vw, 14px);
+  font-weight: 680;
+  letter-spacing: .09em;
+}
+body.is-editing .global-site-menu .admin-entry { display: none; }
+
+@media (max-width: 1100px) {
+  .global-site-menu {
+    gap: 14px;
+    max-width: calc(100vw - 170px);
+  }
+  .global-site-menu .global-site-nav { gap: 15px; }
+  .global-site-menu .global-site-nav a { font-size: 13px; }
+  .global-site-menu .admin-entry { font-size: 11px; padding-inline: 8px; }
+}
+
+
+/* -------- v50 single 文/A language toggle beside Contact -------- */
+.global-site-menu .site-language-switch {
+  position: relative;
+  inset: auto;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 auto;
+  min-width: 26px;
+  padding: 4px 2px;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  backdrop-filter: none;
+  color: rgba(247,247,245,.52);
+  font-size: clamp(13px, .88vw, 15px);
+  font-weight: 700;
+  letter-spacing: .01em;
+  line-height: 1;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: color .18s ease, opacity .18s ease;
+}
+.global-site-menu .site-language-switch:hover,
+.global-site-menu .site-language-switch:focus-visible {
+  color: #f5f2eb;
+  outline: none;
+}
+@media (max-width: 1100px) {
+  .global-site-menu .site-language-switch { font-size: 12px; min-width: 25px; }
+}
+
+/* v53: the programmatic focus target must never draw a browser focus ring. */
+#story[tabindex="-1"]:focus { outline: none; }
+
+/* v61: Chrome mask/compositor stability. Keep the moving X-ray surfaces isolated
+   without forcing every editable asset into a permanent GPU layer. */
+body.is-editing .editable { will-change: transform; }
+body:not(.is-editing) .xray-mask-stable {
+  -webkit-backface-visibility: hidden;
+  backface-visibility: hidden;
+  isolation: isolate;
+  contain: paint;
+}
+body:not(.is-editing) .custom-xray-layer {
+  filter: none;
+}
+
+
+/* v62 — Edit Mode is a single-scene workspace rather than a scrollable page. */
+html.edit-scene-isolated,
+html.edit-scene-isolated body {
+  width: 100%;
+  height: 100%;
+  overflow: hidden !important;
+  overscroll-behavior: none !important;
+  scroll-behavior: auto !important;
+}
+body.is-editing .story {
+  position: relative;
+  width: 100vw;
+  height: 100dvh;
+  overflow: hidden;
+}
+body.is-editing .story > section.editor-scene-inactive,
+body.is-editing .story .editor-scene-inactive {
+  display: none !important;
+}
+body.is-editing .story > section.editor-scene-active,
+body.is-editing .story .editor-scene-active {
+  display: block !important;
+  width: 100%;
+  height: 100dvh !important;
+  min-height: 100dvh !important;
+  margin: 0 !important;
+}
+.scene-background-row .background-row-static {
+  pointer-events: none;
+  opacity: .62;
+}
+.scene-background-row .layer-name { cursor: pointer; }
+.editor-section.editor-section-pulse {
+  box-shadow: inset 0 0 0 1px rgba(150, 190, 255, .58);
+}
+
+/* v63: Scene 1 photo is now an ordinary editable image layer at the bottom of the artboard. */
+.scene-main-background-layer {
+  width: 1536px;
+  height: 864px;
+  object-fit: fill;
+  pointer-events: none;
+  user-select: none;
+  -webkit-backface-visibility: hidden;
+  backface-visibility: hidden;
+}
+body.is-editing .scene-main-background-layer { pointer-events: auto; }

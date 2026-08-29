@@ -1,0 +1,28 @@
+:root {
+  --scene5-stage-scale: 1;
+  --scene5-stage-left: 0px;
+  --scene5-stage-top: 0px;
+}
+.scene-five {
+  position: relative;
+  z-index: 0;
+  width: 100%;
+  height: 100dvh;
+  overflow: hidden;
+  background: #000;
+}
+.scene-five-stage {
+  position: absolute;
+  left: var(--scene5-stage-left);
+  top: var(--scene5-stage-top);
+  width: 1920px;
+  height: 1080px;
+  transform: scale(var(--scene5-stage-scale));
+  transform-origin: 0 0;
+  overflow: visible;
+  user-select: none;
+}
+.scene-five-stage .custom-text-layer,
+.scene-five-stage .custom-image-layer { position: absolute; }
+body.is-editing .scene-five { margin-top: 0; background:#000; }
+.scene-five > .scene-runtime-hold { background:#000; }
