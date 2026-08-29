@@ -30,6 +30,15 @@ Joe-IP 是一个电影化、多幕式个人作品集网站。网站通过顶部�
 - 文件：`server.py`
 - 默认端口：`8080`
 
+项目同时提供 Vite 工程化入口：
+
+- `npm run dev`：前端开发服务器，默认端口 `5173`
+- `/api` 请求由 Vite 代理到本地 Python 服务 `8080`
+- `npm run build`：生成静态生产目录 `dist/`
+- `npm run preview`：预览 `dist/` 构建结果
+
+Vite 只负责开发服务器和构建，不替换现有 Scene Engine、Runtime、Editor 或本地编辑 API。
+
 Python Server 不是业务后端，主要用于本地编辑模式：
 
 - 读取 / 保存布局 JSON
