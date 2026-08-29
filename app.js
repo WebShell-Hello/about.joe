@@ -88,14 +88,12 @@
       stack.appendChild(root);
     });
 
-    // Request all cinematic media immediately. Scene 3/4 are decoded while the
-    // user is still on Scene 2, so layer changes do not wait for network loading.
-    roots.forEach(root => {
-      root.querySelectorAll('video').forEach(video => {
-        video.preload = 'auto';
-        try { video.load(); } catch (_) {}
-      });
-    });
+    // Keep video sources detached until navigation enters their scene.
+    roots.forEach(root => root.querySelectorAll('video').forEach(video => {
+      video.preload = 'none';
+      if (!video.dataset.src && video.getAttribute('src')) video.dataset.src = video.getAttribute('src');
+      video.removeAttribute('src');
+    }));
   }
 
 
