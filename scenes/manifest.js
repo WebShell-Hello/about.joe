@@ -1277,8 +1277,11 @@
       return controller;
     }
 
-    const DISCRETE_WHEEL_THRESHOLD = 14;
-    const DISCRETE_WHEEL_TAIL_MS = 180;
+    // Mac trackpads often emit a short run of very small pixel deltas before
+    // their momentum becomes noticeable. Keep the one-gesture latch, but do
+    // not wait for a mouse-sized delta total before accepting the gesture.
+    const DISCRETE_WHEEL_THRESHOLD = 3;
+    const DISCRETE_WHEEL_TAIL_MS = 120;
     // Strict gesture latch: one physical trackpad swipe may emit dozens of
     // wheel events. After the first threshold-crossing event changes scene,
     // the rest of that wheel stream is ignored until a quiet tail confirms
