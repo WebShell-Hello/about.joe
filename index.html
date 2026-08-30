@@ -101,6 +101,10 @@
     </div>
 
     <div class="editor-layers-column" id="editorLayersColumn">
+    <section class="editor-section scene-title-controls" id="sceneTitleControls">
+      <div class="section-title"><span data-i18n="sceneTitles">Scene navigation names</span><span class="hint" data-i18n="bilingual">English + Chinese</span></div>
+      <div class="scene-title-list" id="sceneTitleList"></div>
+    </section>
     <section class="editor-section" id="layersControls">
       <div class="section-title"><span data-i18n="layers">Layers</span><span class="hint" id="selectionCount">select / add</span></div>
       <div class="add-layer-row">
@@ -177,8 +181,8 @@
         <label><span data-i18n="lineHeight">Line height</span> <input id="textLineHeight" type="number" min="0.5" max="4" step="0.05" /></label>
       </div>
       <div class="property-grid text-property-grid">
-        <label><span data-i18n="textEnterDelay">Show after (ms)</span> <input id="textEnterDelay" type="number" min="0" max="60000" step="100" /></label>
-        <label><span data-i18n="textVisibleFor">Visible for (ms, 0 = always)</span> <input id="textVisibleFor" type="number" min="0" max="600000" step="100" /></label>
+        <label><span data-i18n="textEnterDelay">Show after (ms)</span> <input id="textEnterDelay" type="number" min="0" max="600000" step="100" /></label>
+        <label><span data-i18n="textFadeIn">Fade-in duration (ms)</span> <input id="textVisibleFor" type="number" min="0" max="10000" step="50" /></label>
       </div>
       <label class="color-row"><span data-i18n="color">Color</span> <input id="textColor" type="color" value="#ffffff" /><input id="textColorHex" type="text" value="#ffffff" maxlength="9" /></label>
       <label class="stacked-field"><span data-i18n="align">Align</span>
@@ -307,7 +311,7 @@
     </div>
   </aside>
 
-  <script src="scenes/manifest.js?v=67"></script>
-  <script src="app.js?v=67"></script>
+  <script src="scenes/manifest.js?v=68"></script>
+  <script src="app.js?v=68"></script>
 </body>
 </html>

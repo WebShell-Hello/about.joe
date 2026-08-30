@@ -167,6 +167,7 @@
   let activeScene = 1;
   let sceneOneGroupView = 'all';
   const sceneGroupFilter = document.getElementById('sceneGroupFilter');
+  const sceneTitleList = document.getElementById('sceneTitleList');
   let sceneSyncing = false;
 
   const clamp = (v, min, max) => Math.min(max, Math.max(min, v));
@@ -194,12 +195,12 @@
   const I18N = {
     en: {
       editorTitle:'Content & Layout Editor', dragToolbar:'drag toolbar', borderDragHint:'drag the 1px outer border', preview:'Preview', siteSettings:'Site settings', browserTab:'browser tab', titleEn:'Title · English', titleZh:'Title · Chinese', siteTitleNote:'The browser tab title follows the current website language.',
-      editScene:'Edit scene', hideScene:'Hide current scene', showScene:'Show current scene', sceneVisible:'Visible', sceneHidden:'Hidden', sceneEditNote:'Only the current scene is shown in Edit Mode. Use the scene buttons above to switch scenes; page scrolling is disabled. Hidden scenes can still be opened here and restored.', sceneGroupView:'Scene 1 group view', allGroups:'Both',
+      editScene:'Edit scene', hideScene:'Hide current scene', showScene:'Show current scene', sceneVisible:'Visible', sceneHidden:'Hidden', sceneEditNote:'Only the current scene is shown in Edit Mode. Use the scene buttons above to switch scenes; page scrolling is disabled. Hidden scenes can still be opened here and restored.', sceneGroupView:'Scene 1 group view', allGroups:'Both', sceneTitles:'Scene navigation names', bilingual:'English + Chinese',
       video:'Video', videoFit:'Frame fit', videoFrame:'Video frame', videoOpacity:'Video opacity', videoSpeed:'Playback speed', replaceVideo:'Replace selected video', chooseVideo:'Choose video', resetVideo:'First frame', videoNote:'Edit mode keeps the video paused. Drag the frame slider to inspect a still frame; it never starts playback. Video opacity and playback speed are saved with the layer. Click the speed number to type an exact value.',
       layers:'Layers', addText:'+ Text', addImage:'+ Image', bindSelected:'Bind selected', unbind:'Unbind',
       bindingNote:'Hold Command (⌘) while clicking the canvas or layer names to multi-select. Bound layers keep their relative position: moving any member moves the whole bound group by the same X / Y offset, and the group also scrolls together from Scene 1 → 2. Scale, rotation and appearance remain independently editable.',
       transform:'Transform', displayGroup:'Display group', realityGroup:'Reality', digitalGroup:'Digital', scale:'Scale', rotate:'Rotate', opacity:'Opacity', zIndex:'Layer', sendBack:'Send back', bringFront:'Bring front', deleteLayer:'Delete selected layer',
-      text:'Text', textEnterDelay:'Show after (ms)', textVisibleFor:'Visible for (ms, 0 = always)', spacesPreserved:'English + Chinese are stored together', content:'Content', contentEn:'English', contentZh:'Chinese', fontFamily:'Font', textBoxWidth:'Text box width', fontSize:'Font size', weight:'Weight', letterPx:'Letter px', lineHeight:'Line height', color:'Color', align:'Align', alignLeft:'Left', alignCenter:'Center', alignRight:'Right', linkJump:'Link / Jump', linkOptional:'optional', linkTarget:'Target', linkOpen:'Open', sameTab:'Same tab', newTab:'New tab', jumpOffset:'Jump offset px', linkNote:'Use #section-id for an internal jump, a full URL for a website, or mailto: for email. Links are disabled while Edit Mode is active.',
+      text:'Text', textEnterDelay:'Show after (ms)', textFadeIn:'Fade-in duration (ms)', spacesPreserved:'English + Chinese are stored together', content:'Content', contentEn:'English', contentZh:'Chinese', fontFamily:'Font', textBoxWidth:'Text box width', fontSize:'Font size', weight:'Weight', letterPx:'Letter px', lineHeight:'Line height', color:'Color', align:'Align', alignLeft:'Left', alignCenter:'Center', alignRight:'Right', linkJump:'Link / Jump', linkOptional:'optional', linkTarget:'Target', linkOpen:'Open', sameTab:'Same tab', newTab:'New tab', jumpOffset:'Jump offset px', linkNote:'Use #section-id for an internal jump, a full URL for a website, or mailto: for email. Links are disabled while Edit Mode is active.',
       mediaScale:'Media scale', mediaScaleNote:'Scale images or videos with the slider, or type an exact number directly.', image:'Image', imageWidth:'Width', imageHeight:'Height', restoreAspect:'Original ratio', restoreSize:'Original size', imageSizeNote:'New images use the uploaded file’s real width/height ratio. Width and Height can then be changed independently, or adjusted with the side handles, for intentional horizontal/vertical stretching.', brightness:'Brightness', contrast:'Contrast', saturation:'Saturation', hue:'Hue', rotateLeft:'↶ 90°', rotateRight:'↷ 90°', resetColor:'Reset color',
       imageNote:'Color adjustments are non-destructive and are stored with the layout. Lower brightness and saturation to make daytime assets sit naturally in the night scene.',
       xrayLens:'X-ray lens', normalPreview:'normal preview', lensRadius:'Lens radius', feather:'Feather', triggerDist:'Trigger dist.', expansionSpeed:'Click expansion (ms)', bodyInLens:'Body in lens', perspective:'Perspective', skeleton:'Skeleton', rainDensity:'Digital rain density', rainDigitSize:'Digit size',
@@ -220,12 +221,12 @@
     },
     zh: {
       editorTitle:'内容与布局编辑器', dragToolbar:'拖动工具栏', borderDragHint:'拖动外侧 1px 边框移动编辑器', preview:'预览', siteSettings:'网站设置', browserTab:'网页页签', titleEn:'页签 · 英文', titleZh:'页签 · 中文', siteTitleNote:'浏览器页签会根据网站当前语言自动使用对应标题。',
-      editScene:'编辑场景', hideScene:'隐藏当前幕', showScene:'显示当前幕', sceneVisible:'显示中', sceneHidden:'已隐藏', sceneEditNote:'编辑模式只显示当前幕。请使用上方场景按钮切换页面；页面滚动已禁用。被隐藏的幕仍可在这里打开并恢复。', sceneGroupView:'第1幕组别视图', allGroups:'同时显示',
+      editScene:'编辑场景', hideScene:'隐藏当前幕', showScene:'显示当前幕', sceneVisible:'显示中', sceneHidden:'已隐藏', sceneEditNote:'编辑模式只显示当前幕。请使用上方场景按钮切换页面；页面滚动已禁用。被隐藏的幕仍可在这里打开并恢复。', sceneGroupView:'第1幕组别视图', allGroups:'同时显示', sceneTitles:'顶栏场景名称', bilingual:'英文 + 中文',
       video:'视频', videoFit:'画面填充', videoFrame:'视频帧进度', videoOpacity:'视频透明度', videoSpeed:'播放速度', replaceVideo:'更换当前视频', chooseVideo:'选择视频', resetVideo:'回到首帧', videoNote:'编辑模式下视频始终暂停。拖动“视频帧进度”只定位并显示对应静止画面，松手不会播放；视频透明度和播放速度都会随布局保存。速度右侧数字可直接点击输入。',
       layers:'图层', addText:'+ 文字', addImage:'+ 图片', bindSelected:'绑定所选图层', unbind:'解除绑定',
       bindingNote:'按住 Command（⌘）点击画布或图层名称可多选。绑定后的图层会保持相对位置：移动其中任意一个成员时，整组都会获得相同的 X / Y 位移；第一幕 → 第二幕滚动时也会一起移动。缩放、旋转和外观仍可单独编辑。',
       transform:'变换', displayGroup:'显示组', realityGroup:'现实组', digitalGroup:'数字组', scale:'缩放', rotate:'旋转', opacity:'透明度', zIndex:'图层', sendBack:'移到后层', bringFront:'移到前层', deleteLayer:'删除所选图层',
-      text:'文字', textEnterDelay:'进入后延迟显示（毫秒）', textVisibleFor:'显示时长（毫秒，0 = 始终显示）', spacesPreserved:'中英文同时维护', content:'内容', contentEn:'英文', contentZh:'中文', fontFamily:'字体', textBoxWidth:'文本框宽度', fontSize:'字号', weight:'字重', letterPx:'字间距 px', lineHeight:'行高', color:'颜色', align:'对齐', alignLeft:'左对齐', alignCenter:'居中', alignRight:'右对齐', linkJump:'链接 / 跳转', linkOptional:'可选', linkTarget:'目标地址', linkOpen:'打开方式', sameTab:'当前页', newTab:'新标签页', jumpOffset:'跳转偏移 px', linkNote:'内部跳转填写 #section-id，网站填写完整 URL，邮箱填写 mailto:。编辑模式下所有链接均不会跳转。',
+      text:'文字', textEnterDelay:'进入后延迟显示（毫秒）', textFadeIn:'浮现耗时（毫秒）', spacesPreserved:'中英文同时维护', content:'内容', contentEn:'英文', contentZh:'中文', fontFamily:'字体', textBoxWidth:'文本框宽度', fontSize:'字号', weight:'字重', letterPx:'字间距 px', lineHeight:'行高', color:'颜色', align:'对齐', alignLeft:'左对齐', alignCenter:'居中', alignRight:'右对齐', linkJump:'链接 / 跳转', linkOptional:'可选', linkTarget:'目标地址', linkOpen:'打开方式', sameTab:'当前页', newTab:'新标签页', jumpOffset:'跳转偏移 px', linkNote:'内部跳转填写 #section-id，网站填写完整 URL，邮箱填写 mailto:。编辑模式下所有链接均不会跳转。',
       mediaScale:'素材缩放', mediaScaleNote:'图片和视频都可以用滑杆放大 / 缩小，也可以直接手动输入精确倍率。', image:'图片', imageWidth:'宽度', imageHeight:'高度', restoreAspect:'恢复原比例', restoreSize:'恢复原尺寸', imageSizeNote:'新插入图片默认严格使用上传素材的真实宽高比例。之后可独立修改宽度和高度，或拖动四边手柄，实现有意的横向 / 纵向拉伸。', brightness:'亮度', contrast:'对比度', saturation:'饱和度', hue:'色相', rotateLeft:'↶ 90°', rotateRight:'↷ 90°', resetColor:'重置颜色',
       imageNote:'颜色调整为非破坏式并会随布局保存。夜景中建议适当降低亮度与饱和度，让白天素材自然融入画面。',
       xrayLens:'X 光透视镜', normalPreview:'正常预览', lensRadius:'透视半径', feather:'羽化', triggerDist:'触发距离', expansionSpeed:'点击扩散时长（毫秒）', bodyInLens:'镜内主体', perspective:'透视层', skeleton:'骨骼层', rainDensity:'数字雨密度', rainDigitSize:'雨滴大小',
@@ -298,7 +299,26 @@
   }
 
   function displaySceneNumber(scene=activeScene){return Number(scene)}
-  function sceneName(scene = activeScene) {const n=displaySceneNumber(scene);return currentLang()==='zh'?`第${n}幕`:`Scene ${n}`;}
+  function sceneTitle(scene, language = currentLang()) {
+    const n = displaySceneNumber(scene);
+    const value = S.layout.sceneTitles?.[n] || S.layout.sceneTitles?.[String(n)];
+    return String(value?.[language] || (language === 'zh' ? `第${n}幕` : `Scene ${n}`));
+  }
+  function sceneName(scene = activeScene) { return sceneTitle(scene); }
+  function syncSceneTitleControls() {
+    if (!sceneTitleList) return;
+    if (sceneTitleList.children.length !== SCENE_IDS.length * 2) {
+      sceneTitleList.innerHTML = SCENE_IDS.map(scene => `<div class="scene-title-row"><span class="scene-title-number">${scene}</span><input type="text" data-scene-title="${scene}" data-scene-title-lang="en" aria-label="Scene ${scene} English"><input type="text" data-scene-title="${scene}" data-scene-title-lang="zh" aria-label="Scene ${scene} Chinese"></div>`).join('');
+    }
+    for (const input of sceneTitleList.querySelectorAll('[data-scene-title]')) {
+      const scene = Number(input.dataset.sceneTitle);
+      const lang = input.dataset.sceneTitleLang;
+      const title = S.layout.sceneTitles?.[scene] || {};
+      const next = String(title[lang] || '');
+      if (document.activeElement !== input && input.value !== next) input.value = next;
+    }
+    document.querySelectorAll('[data-scene-jump]').forEach(button => { button.textContent = sceneTitle(Number(button.dataset.sceneJump)); });
+  }
 
   function sceneLayers(scene = activeScene) {
     return Object.keys(S.layout.layers).filter(id => layerScene(id) === Number(scene));
@@ -353,6 +373,7 @@
     if(typeof syncTransition==='function')syncTransition();
     applySceneGroupView();
     syncSceneGroupFilterUi();
+    syncSceneTitleControls();
   }
 
   function setActiveScene(scene, options = {}) {
@@ -662,6 +683,11 @@
     const active = isTextLayer(s);
     textControls.hidden = !active;
     if (!active) return;
+    const timingMax = 10000;
+    textProps.enterDelay.max = String(timingMax);
+    textProps.visibleFor.max = String(timingMax);
+    textProps.enterDelay.step = timingMax <= 60000 ? '100' : '10';
+    textProps.visibleFor.step = timingMax <= 60000 ? '100' : '10';
     const t = /** @type {import('../src/types').TextStyle} */ (s.textStyle || {});
     const el = /** @type {HTMLElement|null} */ (elementFor(ids[0]));
     const computed = el ? getComputedStyle(el) : null;
@@ -682,7 +708,7 @@
     textProps.colorHex.value = normaliseHex(resolvedColor);
     textProps.align.value = t.align || computed?.textAlign || 'left';
     textProps.enterDelay.value = String(Math.round(Number(s.displayTiming?.enterDelayMs) || 0));
-    textProps.visibleFor.value = String(Math.round(Number(s.displayTiming?.visibleForMs) || 0));
+    textProps.visibleFor.value = String(Math.round(Number(s.displayTiming?.fadeInMs ?? s.displayTiming?.visibleForMs) || 0));
     const link = s.link || {};
     textProps.linkHref.value = link.href || '';
     textProps.linkTarget.value = link.target === '_blank' ? '_blank' : '_self';
@@ -762,7 +788,7 @@
       editorVideoPrepared.add(video);
       video.addEventListener('play', () => pauseEditorVideo(video));
       video.addEventListener('loadedmetadata', reset);
-      video.addEventListener('durationchange', syncVideoControls);
+      video.addEventListener('durationchange', () => { syncVideoControls(); syncTextControls(); });
       video.addEventListener('seeked', syncVideoControls);
     }
     if (video.readyState >= 1) reset();
@@ -1462,13 +1488,14 @@
     ensureTextStyle(s).align = textProps.align.value;
     S.applyLayer(ids[0]); updateSelection(); autosave('Text alignment updated');
   });
-  [[textProps.enterDelay, 'enterDelayMs', 60000], [textProps.visibleFor, 'visibleForMs', 600000]].forEach(([input, key, max]) => input.addEventListener('input', () => {
+  [[textProps.enterDelay, 'enterDelayMs'], [textProps.visibleFor, 'fadeInMs']].forEach(([input, key]) => input.addEventListener('input', () => {
     const ids = selectedArray();
     const s = ids.length === 1 ? stateFor(ids[0]) : null;
     if (!isTextLayer(s)) return;
-    if (!s.displayTiming) s.displayTiming = { enterDelayMs: 0, visibleForMs: 0 };
+    if (!s.displayTiming) s.displayTiming = { enterDelayMs: 0, fadeInMs: 0 };
     const value = Number(input.value);
     if (!Number.isFinite(value)) return;
+    const max = 10000;
     s.displayTiming[key] = clamp(Math.round(value), 0, max);
     S.applyLayer(ids[0]); updateSelection(); autosave('Text timing updated');
   }));
@@ -1918,6 +1945,20 @@
     updateSceneUi();
   });
 
+  sceneTitleList?.addEventListener('input', event => {
+    const input = event.target instanceof HTMLInputElement ? event.target : null;
+    if (!input) return;
+    const scene = Number(input.dataset.sceneTitle);
+    const lang = input.dataset.sceneTitleLang === 'zh' ? 'zh' : 'en';
+    if (!Number.isFinite(scene)) return;
+    if (!S.layout.sceneTitles) S.layout.sceneTitles = {};
+    const current = S.layout.sceneTitles[scene] || { en: sceneTitle(scene, 'en'), zh: sceneTitle(scene, 'zh') };
+    current[lang] = input.value;
+    S.layout.sceneTitles[scene] = current;
+    S.applyLayout();
+    autosave('Scene title updated');
+  });
+
   // Edit Mode is scene-isolated: wheel/touch gestures may scroll the toolbar,
   // but never the underlying portfolio document.
   const stopEditorPageScroll = event => {
@@ -2346,6 +2387,21 @@
   window.addEventListener('keydown', e => {
     const cmd = e.metaKey || e.ctrlKey;
     const nativeTextFocus=['INPUT','TEXTAREA','SELECT'].includes(document.activeElement?.tagName)||document.activeElement?.isContentEditable;
+    if (!nativeTextFocus && (e.key === 'Backspace' || e.key === 'Delete')) {
+      const ids = selectedArray();
+      const s = ids.length === 1 ? stateFor(ids[0]) : null;
+      if (isTextLayer(s) && !s.locked) {
+        e.preventDefault();
+        if (!confirm(tr('deleteConfirm', { name: displayLayerName(ids[0], s) }))) return;
+        S.removeLayer(ids[0]).then(() => {
+          S.persistLayout();
+          const fallback = Object.keys(S.layout.layers).find(id => layerScene(id) === activeScene) || null;
+          setSelection(fallback ? [fallback] : [], fallback);
+          autosave('Layer deleted');
+        });
+        return;
+      }
+    }
     if(cmd&&!e.altKey&&!nativeTextFocus&&e.key.toLowerCase()==='c'){if(copySelectedTextLayers()){e.preventDefault();return}}
     if(cmd&&!e.altKey&&!nativeTextFocus&&e.key.toLowerCase()==='v'){if(pasteTextLayers()){e.preventDefault();return}}
     if (cmd && !e.altKey && e.key.toLowerCase() === 'z') {

@@ -305,7 +305,8 @@
       ? {x:50,y:50,zoom:1,src:'',fileName:'',sourceWidth:null,sourceHeight:null}
       : {x:50,y:50,zoom:1,src:'',fileName:'',sourceWidth:null,sourceHeight:null}])),
     sceneVisibility:Object.fromEntries(SCENE_IDS.map(scene=>[scene,true])),
-    sceneShades: Object.fromEntries(SCENE_IDS.map(scene => [scene, scene === 1 ? { top:0, bottom:0.88 } : ([2,3,4].includes(scene) ? { top:0.88, bottom:0.88 } : { top:0, bottom:0 })]))
+    sceneShades: Object.fromEntries(SCENE_IDS.map(scene => [scene, scene === 1 ? { top:0, bottom:0.88 } : ([2,3,4].includes(scene) ? { top:0.88, bottom:0.88 } : { top:0, bottom:0 })])),
+    sceneTitles: { 1:{en:'Home',zh:'首页'}, 2:{en:'About',zh:'关于'}, 3:{en:'Experience',zh:'经历'}, 4:{en:'Skills',zh:'技能'}, 5:{en:'Projects',zh:'项目'}, 6:{en:'Blog',zh:'博客'}, 7:{en:'Contact',zh:'联系'} }
   };
 
   function coalesceTextLayers(targetLayout) {
@@ -419,6 +420,7 @@
   function normaliseBackgroundState(candidate,fallback={}){const source=candidate&&typeof candidate==='object'?candidate:{},out={...fallback,...source};out.x=Math.max(0,Math.min(100,Number(out.x)||50));out.y=Math.max(0,Math.min(100,Number(out.y)||50));out.zoom=Math.max(1,Math.min(4,Number(out.zoom)||1));out.src=migrateBuiltInAssetPath(String(out.src||''));out.fileName=String(out.fileName||'');const sw=Number(out.sourceWidth),sh=Number(out.sourceHeight);out.sourceWidth=Number.isFinite(sw)&&sw>0?sw:null;out.sourceHeight=Number.isFinite(sh)&&sh>0?sh:null;return out}
   function normaliseSceneBackgrounds(candidate,legacyScene1=null){const defaults=cloneDefault().sceneBackgrounds||{},out={};for(const scene of SCENE_IDS){const source=candidate&&typeof candidate==='object'?(candidate[scene]||candidate[String(scene)]||null):null,fallback=scene===1&&legacyScene1?{...defaults[scene],...legacyScene1}:(defaults[scene]||{x:50,y:50,zoom:1,src:'',fileName:'',sourceWidth:null,sourceHeight:null});out[scene]=normaliseBackgroundState(source,fallback)}return out}
   function normaliseSceneVisibility(candidate){const out={};for(const scene of SCENE_IDS){const value=candidate&&typeof candidate==='object'?(candidate[scene]??candidate[String(scene)]):undefined;out[scene]=value!==false}return out}
+  function normaliseSceneTitles(candidate){const defaults=DEFAULT_LAYOUT.sceneTitles||{};const out={};for(const scene of SCENE_IDS){const source=candidate&&typeof candidate==='object'?(candidate[scene]||candidate[String(scene)]||{}):{};const fallback=defaults[scene]||{en:`Scene ${scene}`,zh:`第${scene}幕`};out[scene]={en:String(source.en??fallback.en),zh:String(source.zh??fallback.zh)}}return out}
 
   function normaliseSceneShades(candidate, scene1Bottom = 0.88) {
     const out = {};
@@ -514,8 +516,8 @@
       } : null;
       const timing = candidate?.displayTiming ?? base?.displayTiming ?? {};
       common.displayTiming = {
-        enterDelayMs: Math.max(0, Math.min(60000, Number(timing?.enterDelayMs) || 0)),
-        visibleForMs: Math.max(0, Math.min(600000, Number(timing?.visibleForMs) || 0))
+        enterDelayMs: Math.max(0, Math.min(10000, Number(timing?.enterDelayMs) || 0)),
+        fadeInMs: Math.max(0, Math.min(10000, Number(timing?.fadeInMs ?? timing?.visibleForMs) || 0))
       };
     }
     if (type === 'image') {
@@ -623,7 +625,7 @@
       };
     }
     const legacyBackground=source.background&&typeof source.background==='object'?source.background:out.background;
-    out.sceneBackgrounds=normaliseSceneBackgrounds(source.sceneBackgrounds,legacyBackground);out.background={...out.sceneBackgrounds[1]};out.sceneVisibility=normaliseSceneVisibility(source.sceneVisibility);
+    out.sceneBackgrounds=normaliseSceneBackgrounds(source.sceneBackgrounds,legacyBackground);out.background={...out.sceneBackgrounds[1]};out.sceneVisibility=normaliseSceneVisibility(source.sceneVisibility);out.sceneTitles=normaliseSceneTitles(source.sceneTitles);
     if (out.layers.scene1Background) {
       out.sceneBackgrounds[1] = {x:50,y:50,zoom:1,src:'',fileName:'',sourceWidth:null,sourceHeight:null};
       out.background = {...out.sceneBackgrounds[1]};
@@ -1297,13 +1299,20 @@
   }
   let textSceneEnteredAt = performance.now();
   function textTimingMultiplier(s) {
-    if (!s?.displayTiming || !Number(s.displayTiming.enterDelayMs) && !Number(s.displayTiming.visibleForMs)) return 1;
+    if (!s?.displayTiming || !Number(s.displayTiming.enterDelayMs) && !Number(s.displayTiming.fadeInMs) && !Number(s.displayTiming.visibleForMs)) return 1;
     const scene = validSceneId(s.scene, MIN_SCENE_ID);
     if (Number(window.__joeSimpleVideoStory?.getActiveDomainId?.()) !== scene) return 0;
-    const elapsed = Math.max(0, performance.now() - textSceneEnteredAt);
+    const videoId = [2, 3, 4].includes(Number(scene))
+      ? Object.keys(layout.layers || {}).find(id => Number(layout.layers[id]?.scene) === scene && layout.layers[id]?.type === 'video')
+      : null;
+    const video = videoId ? elementFor(videoId) : null;
+    const videoTime = video && Number.isFinite(video.currentTime) ? Number(video.currentTime) * 1000 : NaN;
+    const elapsed = Number.isFinite(videoTime) ? Math.max(0, videoTime) : Math.max(0, performance.now() - textSceneEnteredAt);
     const enter = Math.max(0, Number(s.displayTiming.enterDelayMs) || 0);
-    const duration = Math.max(0, Number(s.displayTiming.visibleForMs) || 0);
-    return elapsed < enter || (duration > 0 && elapsed >= enter + duration) ? 0 : 1;
+    const fadeIn = Math.max(0, Number(s.displayTiming.fadeInMs ?? s.displayTiming.visibleForMs) || 0);
+    if (elapsed < enter) return 0;
+    if (!fadeIn) return 1;
+    return smoothstep(Math.min(1, (elapsed - enter) / fadeIn));
   }
   function runtimeOpacity(id,s){
     if(editMode)return s.opacity;
@@ -1326,7 +1335,7 @@
     rootEl.classList.add('portfolio-text-entry-running');
     const activeScene = Number(window.__joeSimpleVideoStory?.getActiveDomainId?.()) || 1;
     Object.values(layout.layers || {}).filter(layer => layer?.type === 'text' && Number(layer.scene) === activeScene)
-      .flatMap(layer => [Number(layer.displayTiming?.enterDelayMs) || 0, Number(layer.displayTiming?.visibleForMs) || 0])
+      .flatMap(layer => [Number(layer.displayTiming?.enterDelayMs) || 0, Number(layer.displayTiming?.fadeInMs ?? layer.displayTiming?.visibleForMs) || 0, (Number(layer.displayTiming?.enterDelayMs) || 0) + (Number(layer.displayTiming?.fadeInMs ?? layer.displayTiming?.visibleForMs) || 0)])
       .filter(delay => delay > 0)
       .forEach(delay => window.setTimeout(() => applyLayout(), delay + 8));
     // Two frames guarantee the browser paints the initial 0-opacity state
@@ -2074,7 +2083,7 @@
     animateLensExpansion({ x: event.clientX, y: event.clientY });
   });
 
-  function hideLens() {
+  function hideLens({ reset = false } = {}) {
     pendingLensPoint = null;
     if (lensFrameRequest) {
       cancelAnimationFrame(lensFrameRequest);
@@ -2086,7 +2095,7 @@
     if (lensBirthFrame) cancelAnimationFrame(lensBirthFrame);
     lensBirthFrame = 0;
     lensRadiusMultiplier = 1;
-    lensInverted = false;
+    if (reset) lensInverted = false;
     lensTransition = null;
     applyLensAppearance(false);
   }
@@ -2526,9 +2535,9 @@
     textSceneEnteredAt = performance.now();
     const scene = Number(event.detail?.sceneId);
     const layers = Object.entries(layout.layers || {}).filter(([, layer]) => layer?.type === 'text' && Number(layer.scene) === scene);
-    const delays = layers.flatMap(([, layer]) => [Number(layer.displayTiming?.enterDelayMs) || 0, Number(layer.displayTiming?.visibleForMs) || 0]).filter(value => value > 0);
+    const delays = layers.flatMap(([, layer]) => [Number(layer.displayTiming?.enterDelayMs) || 0, Number(layer.displayTiming?.fadeInMs ?? layer.displayTiming?.visibleForMs) || 0, (Number(layer.displayTiming?.enterDelayMs) || 0) + (Number(layer.displayTiming?.fadeInMs ?? layer.displayTiming?.visibleForMs) || 0)]).filter(value => value > 0);
     delays.forEach(delay => window.setTimeout(() => applyLayout(), delay + 8));
-    if (Number(event.detail?.sceneId) !== 1) hideLens();
+    if (Number(event.detail?.sceneId) !== 1) hideLens({ reset: true });
   });
   window.addEventListener('blur', hideLens, { passive: true });
   document.addEventListener('visibilitychange', () => { if (document.hidden) hideLens(); }, { passive: true });

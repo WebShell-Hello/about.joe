@@ -8,7 +8,7 @@
   const UI_LANG_KEY = 'joe-ui-language-v1';
   const productionBuild = document.querySelector('meta[name="joe-build"]')?.content === 'production';
   const pageParams = new URLSearchParams(location.search);
-  const ASSET_BUILD = '67';
+  const ASSET_BUILD = '68';
 
   function ssGet(key) { try { return sessionStorage.getItem(key); } catch (_) { return null; } }
   function ssSet(key, value) { try { sessionStorage.setItem(key, value); } catch (_) {} }
@@ -116,6 +116,17 @@
       ['#projects', 5], ['#blog', 6], ['#contact', 7]
     ]);
 
+    const syncNavLabels = () => {
+      const titles = window.Scene1?.layout?.sceneTitles || {};
+      navLinks.forEach(link => {
+        if (link === brand) return;
+        const scene = Number(link.dataset.navScene);
+        const title = titles[scene] || titles[String(scene)];
+        const language = window.SceneLanguage?.language === 'zh' ? 'zh' : 'en';
+        if (title) link.textContent = String(title[language] ?? title.en ?? link.textContent);
+      });
+    };
+
     const syncActive = sceneId => {
       const id = Number(sceneId) || 1;
       navLinks.forEach(link => {
@@ -145,6 +156,8 @@
     window.addEventListener('joe-active-domain-change', event => {
       syncActive(event.detail?.sceneId || 1);
     });
+    window.addEventListener('scene-layout-applied', syncNavLabels);
+    window.addEventListener('ui-language-change', syncNavLabels);
 
     // In Edit Mode, website navigation remains inert so every visible layer is editable.
     if (editMode) {
@@ -156,6 +169,7 @@
       return;
     }
 
+    syncNavLabels();
     syncActive(storyEngine?.getActiveDomainId?.() || 1);
 
     // Optional direct-entry hashes are resolved once. The default remains Home.

@@ -58,7 +58,9 @@ export interface TextLayer extends LayerBase {
   displayTiming?: {
     /** Delay after entering the owning scene before the text becomes visible. */
     enterDelayMs?: number;
-    /** Optional visible duration; zero keeps the text visible for the scene. */
+    /** Duration of the opacity ramp after enterDelayMs; zero means instant. */
+    fadeInMs?: number;
+    /** Legacy field accepted when reading older layout files. */
     visibleForMs?: number;
   };
   link?: { href: string; target?: '_self' | '_blank'; offset?: number } | null;
@@ -149,6 +151,7 @@ export interface Layout {
   sceneBackgrounds: Partial<Record<SceneId, SceneBackground>>;
   sceneVisibility: Partial<Record<SceneId, boolean>>;
   sceneShades: Partial<Record<SceneId, { top: number; bottom: number }>>;
+  sceneTitles: Partial<Record<SceneId, BilingualText>>;
 }
 
 export interface SceneDefinition {

@@ -964,6 +964,10 @@ body.is-editing .selection-box * { touch-action: none; }
 .scene-jump-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(70px, 1fr)); gap: 6px; }
 .scene-group-filter-row { grid-template-columns: repeat(3, minmax(0, 1fr)); }
 body.is-editing .editor-group-filter-hidden { display: none !important; }
+.scene-title-list { display: grid; gap: 6px; }
+.scene-title-row { display: grid; grid-template-columns: 22px minmax(0, 1fr) minmax(0, 1fr); gap: 6px; align-items: center; }
+.scene-title-row input { min-width: 0; width: 100%; }
+.scene-title-number { color: rgba(148,163,184,.72); font-size: 12px; text-align: center; }
 .video-controls { flex-basis: 300px; width: 300px; }
 
 
