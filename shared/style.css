@@ -716,8 +716,14 @@ body.is-editing .editor {
 .editor-title-block { display: grid; gap: 2px; }
 .drag-hint { margin-top: 3px; color: #64748b; font-size: 9px; letter-spacing: .05em; }
 .editor-header-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
-.editor-header-actions .preview-link { grid-column: 1 / -1; text-align: center; }
+.editor-control-row { display: grid; gap: 6px; width: 100%; }
+.editor-control-row-primary { grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr); align-items: stretch; }
+.editor-control-row-primary .preview-link { text-align: center; }
+.editor-header-actions { grid-template-columns: 1fr 1fr; }
 .editor-header-actions button { min-height: 30px; padding: 5px 7px; }
+.editor-actions-primary { grid-template-columns: 1fr 1fr; }
+.editor-control-row.save-choice-row { grid-template-columns: 1fr 1fr; }
+.editor-header .save-status { display: block; min-height: 14px; margin: 0; color: #94a3b8; font-size: 10px; line-height: 1.3; }
 .editor-header-actions button:disabled { opacity: .35; cursor: not-allowed; }
 .editor-section {
   position: relative;
@@ -740,13 +746,22 @@ body.is-editing .editor {
   border-right: 0;
 }
 .editor.is-collapsed {
-  width: 218px !important;
-  height: 148px !important;
+  width: 140px !important;
+  height: 48px !important;
   overflow: hidden;
 }
 .editor.is-collapsed .editor-section,
 .editor.is-collapsed .editor-footer { display: none !important; }
 .editor.is-collapsed .editor-header { flex-basis: 216px; width: 216px; border-right: 0; }
+.editor.is-collapsed .editor-manager-column { width: 140px !important; overflow: hidden; }
+.editor.is-collapsed .editor-title-block,
+.editor.is-collapsed .editor-actions-primary,
+.editor.is-collapsed .save-choice-row,
+.editor.is-collapsed .save-status,
+.editor.is-collapsed .editor-control-row-primary > :not(#collapseEditor),
+.editor.is-collapsed .editor-header-actions > :not(#collapseEditor) { display: none !important; }
+.editor.is-collapsed .editor-header-actions { display: block; }
+.editor.is-collapsed #collapseEditor { display: block !important; width: 100%; min-height: 34px; margin: 0; }
 .editor.is-collapsed .editor-header-actions { grid-template-columns: 1fr; }
 .editor.is-collapsed #undoEdit,
 .editor.is-collapsed #redoEdit,
@@ -830,6 +845,16 @@ body.is-editing .site-language-switch { display: none; }
 .editor-language-switch button { color: #64748b; }
 .editor-language-switch button:hover,
 .editor-language-switch button.is-active { color: #e5e7eb; }
+.editor-language-toggle {
+  align-self: flex-start;
+  min-width: 44px;
+  padding: 5px 8px;
+  border: 1px solid rgba(255,255,255,.12);
+  border-radius: 6px;
+  background: rgba(255,255,255,.04);
+  color: #cbd5e1;
+  cursor: pointer;
+}
 
 .image-rotate-row {
   display: grid;
@@ -936,6 +961,9 @@ body.is-editing .selection-box * { touch-action: none; }
   border-color: rgba(96,165,250,.55);
 }
 .scene-navigation .asset-note { margin-top: 8px; }
+.scene-jump-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(70px, 1fr)); gap: 6px; }
+.scene-group-filter-row { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+body.is-editing .editor-group-filter-hidden { display: none !important; }
 .video-controls { flex-basis: 300px; width: 300px; }
 
 
@@ -1303,6 +1331,209 @@ body.is-editing .editor {
   display: none;
 }
 
+/* v24: editor information architecture. Existing controls stay in place;
+   this only groups them into Scene Manager, Layer List, and Inspector columns. */
+body.is-editing .editor-scroll-shell {
+  display: grid;
+  grid-template-columns: 224px 304px minmax(360px, 1fr);
+  grid-auto-rows: min-content;
+  align-items: start;
+  overflow: auto;
+}
+body.is-editing .editor-scroll-shell > .editor-header {
+  grid-column: 1;
+  grid-row: 1 / span 3;
+  width: auto;
+  height: 100%;
+  min-height: 100%;
+}
+body.is-editing #sceneNavigationControls,
+body.is-editing #siteSettingsControls {
+  grid-column: 1;
+  width: auto;
+  height: auto;
+  min-height: 0;
+  max-height: none;
+  overflow: visible;
+}
+body.is-editing #layersControls {
+  grid-column: 2;
+  width: auto;
+  height: auto;
+  min-height: 0;
+  max-height: none;
+  overflow: visible;
+}
+body.is-editing #propertiesPanel,
+body.is-editing #mediaScaleControls,
+body.is-editing #textControls,
+body.is-editing #imageControls,
+body.is-editing #videoControls,
+body.is-editing #xrayControls,
+body.is-editing #transitionControls,
+body.is-editing #sceneShadeControls,
+body.is-editing #backgroundControls,
+body.is-editing #guidesControls {
+  grid-column: 3;
+  width: auto;
+  height: auto;
+  min-height: 0;
+  max-height: none;
+  overflow: visible;
+}
+body.is-editing #propertiesPanel {
+  border-left: 1px solid rgba(255,255,255,.075);
+}
+body.is-editing .editor-footer {
+  grid-column: 1 / -1;
+  width: auto;
+  height: auto;
+  min-height: 0;
+}
+@media (max-width: 980px) {
+  body.is-editing .editor-scroll-shell {
+    grid-template-columns: 196px 270px minmax(320px, 1fr);
+  }
+}
+@media (max-width: 760px) {
+  body.is-editing .editor-scroll-shell {
+    display: flex;
+    flex-direction: row;
+    align-items: stretch;
+    overflow-x: auto;
+    overflow-y: hidden;
+  }
+  body.is-editing .editor-header,
+  body.is-editing .editor-section,
+  body.is-editing .editor-footer {
+    flex: 0 0 290px;
+    width: 290px;
+    height: 100%;
+    overflow-y: auto;
+  }
+}
+
+/* v25: keep the three editor columns compact. The header used to span
+   multiple implicit grid rows, which created a large empty region before
+   the actual controls were laid out. */
+@media (min-width: 761px) {
+  body.is-editing .editor-scroll-shell > .editor-header {
+    grid-row: 1;
+    height: auto;
+    min-height: 0;
+  }
+  body.is-editing #sceneNavigationControls { grid-row: 2; }
+  body.is-editing #siteSettingsControls { grid-row: 3; }
+  body.is-editing #layersControls {
+    grid-row: 1 / span 2;
+    max-height: none;
+    overflow-y: auto;
+  }
+}
+
+/* v26: independent scrolling for the layer list and inspector. The two
+   columns are wrappers so their scroll positions no longer affect each other. */
+@media (min-width: 761px) {
+  body.is-editing .editor-scroll-shell {
+    grid-template-columns: 224px 304px minmax(320px, 560px);
+    overflow: hidden;
+  }
+  body.is-editing .editor-layers-column,
+  body.is-editing .editor-inspector-column {
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    height: auto;
+    min-width: 0;
+    min-height: 0;
+    max-height: 100%;
+    overflow-y: auto;
+    overflow-x: hidden;
+    overscroll-behavior: contain;
+    scrollbar-gutter: stable;
+  }
+  body.is-editing .editor-inspector-column > .editor-section,
+  body.is-editing .editor-layers-column > .editor-section {
+    flex: 0 0 auto;
+  }
+  body.is-editing .editor-manager-column {
+    position: absolute;
+    inset: 0 auto 0 0;
+    width: 224px;
+    min-width: 170px;
+    overflow-y: auto;
+    overflow-x: hidden;
+    overscroll-behavior: contain;
+    scrollbar-gutter: stable;
+  }
+  body.is-editing .editor-manager-column .editor-header {
+    position: static;
+    top: auto;
+    z-index: auto;
+  }
+  body.is-editing .editor-manager-column .editor-header,
+  body.is-editing .editor-manager-column .editor-section {
+    width: auto;
+    height: auto;
+    min-height: 0;
+    max-height: none;
+    overflow: visible;
+  }
+  body.is-editing .editor-column-resizer {
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    width: 8px;
+    z-index: 6000;
+    cursor: col-resize;
+    touch-action: none;
+    user-select: none;
+    background: rgba(132,170,255,.12);
+  }
+  body.is-editing .editor-column-resizer-layers { left: 220px; }
+  body.is-editing .editor-column-resizer-inspector { left: 524px; }
+  body.is-editing .editor-layers-column {
+    left: 224px;
+    width: 304px;
+  }
+  body.is-editing .editor-inspector-column {
+    left: 528px;
+    width: min(560px, calc(100% - 528px));
+  }
+  body.is-editing .editor-layers-column #layersControls,
+  body.is-editing .editor-inspector-column #propertiesPanel,
+  body.is-editing .editor-inspector-column #mediaScaleControls,
+  body.is-editing .editor-inspector-column #textControls,
+  body.is-editing .editor-inspector-column #imageControls,
+  body.is-editing .editor-inspector-column #videoControls,
+  body.is-editing .editor-inspector-column #xrayControls,
+  body.is-editing .editor-inspector-column #transitionControls,
+  body.is-editing .editor-inspector-column #sceneShadeControls,
+  body.is-editing .editor-inspector-column #backgroundControls,
+  body.is-editing .editor-inspector-column #guidesControls {
+    width: auto;
+    flex-basis: auto;
+    max-height: none;
+    overflow: visible;
+  }
+  body.is-editing .editor-manager-column .editor-header,
+  body.is-editing .editor-manager-column .editor-section,
+  body.is-editing .editor-layers-column .editor-section,
+  body.is-editing .editor-inspector-column .editor-section,
+  body.is-editing .editor-inspector-column .editor-footer {
+    width: auto !important;
+    flex-basis: auto !important;
+  }
+}
+
+@media (max-width: 760px) {
+  body.is-editing .editor-layers-column,
+  body.is-editing .editor-inspector-column,
+  body.is-editing .editor-manager-column {
+    display: contents;
+  }
+}
+
 
 /* v19: per-scene backgrounds + scene visibility */
 .scene-managed-background{position:absolute;inset:0;z-index:-1;overflow:hidden;pointer-events:none}.scene-managed-background>img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:var(--scene-bg-x,50%) var(--scene-bg-y,50%);transform:translate3d(0,var(--scene-bg-scroll-y,0px),0) scale(var(--scene-bg-zoom,1));transform-origin:center;user-select:none}.story>section{isolation:isolate}body.is-editing .scene-hidden-in-editor{outline:2px dashed rgba(248,113,113,.85);outline-offset:-2px}.scene-hidden-edit-badge{display:none;position:absolute;top:12px;left:50%;z-index:2600;transform:translateX(-50%);padding:6px 10px;border:1px solid rgba(248,113,113,.55);border-radius:999px;background:rgba(20,4,6,.82);color:#fecaca;font:700 10px/1 -apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;letter-spacing:.06em;pointer-events:none}body.is-editing .scene-hidden-in-editor>.scene-hidden-edit-badge{display:block}.scene-jump-row button.is-scene-hidden{opacity:.48;text-decoration:line-through}.scene-visibility-row{display:flex;align-items:center;gap:8px;margin-top:8px}.scene-visibility-row button{flex:1;min-height:31px}
@@ -1318,6 +1549,35 @@ body.is-editing .editor {
 .scene-runtime-hold{position:sticky;top:0;min-height:100dvh;isolation:isolate;}
 body.is-editing .scene-runtime-hold{position:relative;top:auto;}
 .scene-runtime-hold>.scene-managed-background{z-index:-1;}
+
+
+/* v67: compact editor controls and width-aware scene navigation. */
+body.is-editing .editor-manager-column .scene-jump-row {
+  grid-template-columns: repeat(auto-fit, minmax(70px, 1fr));
+}
+body.is-editing .editor-manager-column .editor-header {
+  gap: 8px;
+}
+body.is-editing .editor.is-collapsed {
+  width: 140px !important;
+  height: 48px !important;
+  min-width: 140px !important;
+  min-height: 48px !important;
+  max-width: 140px !important;
+  max-height: 48px !important;
+}
+body.is-editing .editor.is-collapsed .editor-scroll-shell,
+body.is-editing .editor.is-collapsed .editor-manager-column {
+  width: 140px !important;
+  height: 48px !important;
+  min-height: 48px !important;
+  overflow: hidden !important;
+}
+body.is-editing .editor.is-collapsed .editor-manager-column .editor-header {
+  width: 140px !important;
+  height: 48px !important;
+  padding: 6px !important;
+}
 
 /* v22 — seamless mode restoration and initial text reveal */
 html.portfolio-booting .story,

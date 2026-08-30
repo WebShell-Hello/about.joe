@@ -42,6 +42,9 @@
 
   uniform vec2 uResolution;
   uniform vec2 uLens;
+  uniform vec2 uLenses[3];
+  uniform int uLensCount;
+  uniform int uLensInverted;
   uniform float uRadius;
   uniform float uFeather;
   uniform float uTime;
@@ -88,8 +91,11 @@
     // the same x/y/radius/feather space as the portfolio lens state.
     vec2 p = vec2(vUv.x * uResolution.x, (1.0 - vUv.y) * uResolution.y);
 
-    float lensDistance = distance(p, uLens);
-    float lens = 1.0 - smoothstep(uRadius, uRadius + max(0.5, uFeather), lensDistance);
+    float lens = 0.0;
+    for (int i = 0; i < 3; i++) {
+      if (i < uLensCount) lens = max(lens, 1.0 - smoothstep(uRadius, uRadius + max(0.5, uFeather), distance(p, uLenses[i])));
+    }
+    if (uLensInverted == 1) lens = 1.0 - lens;
     lens *= uVisible;
     if (lens <= 0.001) {
       outColor = vec4(0.0);
@@ -178,6 +184,9 @@
   const uniforms = {
     resolution: gl.getUniformLocation(program, 'uResolution'),
     lens: gl.getUniformLocation(program, 'uLens'),
+    lenses: gl.getUniformLocation(program, 'uLenses'),
+    lensCount: gl.getUniformLocation(program, 'uLensCount'),
+    lensInverted: gl.getUniformLocation(program, 'uLensInverted'),
     radius: gl.getUniformLocation(program, 'uRadius'),
     feather: gl.getUniformLocation(program, 'uFeather'),
     time: gl.getUniformLocation(program, 'uTime'),
@@ -251,7 +260,18 @@
     gl.bindVertexArray(vao);
     gl.uniform2f(uniforms.resolution, Math.max(1, rect.width), Math.max(1, rect.height));
     gl.uniform2f(uniforms.lens, lens.x - rect.left, lens.y - rect.top);
-    gl.uniform1f(uniforms.radius, lens.radius);
+    const touchPoints = Array.isArray(window.__joeXrayLensState?.touchPoints) ? window.__joeXrayLensState.touchPoints : [];
+    // Keep the WebGL path single-lens on touch devices. Mobile Safari and
+    // Chrome are prone to GPU context loss when an array of dynamic lens
+    // uniforms is updated during the first gesture; DOM layers remain stable.
+    const mobile = window.matchMedia?.('(pointer: coarse), (max-width: 820px)')?.matches;
+    const shaderTouches = mobile ? touchPoints.slice(0, 1) : touchPoints;
+    const shaderPoints = (shaderTouches.length ? shaderTouches : [{ x: lens.x, y: lens.y }]).slice(0, 3).map(point => [Number(point.x) - rect.left, Number(point.y) - rect.top]);
+    while (shaderPoints.length < 3) shaderPoints.push(shaderPoints[0] || [0, 0]);
+    gl.uniform2fv(uniforms.lenses, new Float32Array(shaderPoints.flat()));
+    gl.uniform1i(uniforms.lensCount, lens.active ? (shaderTouches.length || 1) : 0);
+    gl.uniform1i(uniforms.lensInverted, window.__joeXrayLensState?.inverted ? 1 : 0);
+    gl.uniform1f(uniforms.radius, Number(window.__joeXrayLensState?.transitionRadiusPx) || lens.radius);
     gl.uniform1f(uniforms.feather, lens.feather);
     const rain = rainSettings();
     gl.uniform1f(uniforms.time, elapsed);

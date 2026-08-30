@@ -4,13 +4,12 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
   <meta name="color-scheme" content="dark" />
+  <meta name="joe-build" content="source" />
   <title>Joe's Portfolio</title>
-  <link rel="preload" as="image" href="scenes/scene-1/assets/bg-night.png" />
+  <link rel="preload" as="image" href="scenes/scene-1/assets/scene1-landscape-4k.png" />
   <link rel="preload" as="image" href="scenes/scene-1/assets/character-main.png" />
-  <link rel="preload" as="image" href="scenes/scene-1/assets/character-perspective.png" />
-  <link rel="preload" as="image" href="scenes/scene-1/assets/character-bones.png" />
-  <link rel="preload" as="image" href="scenes/scene-1/assets/rock.png" />
-  <link rel="stylesheet" href="shared/style.css?v=57" />
+  <link rel="preload" as="image" href="scenes/scene-1/assets/Character%20perspective%20overlay-2.png" />
+  <link rel="stylesheet" href="shared/style.css?v=69" />
   <link rel="stylesheet" href="scenes/scene-1/scene.css?v=57" />
   <link rel="stylesheet" href="scenes/scene-2/scene.css?v=57" />
   <link rel="stylesheet" href="scenes/scene-3/scene.css?v=57" />
@@ -45,33 +44,27 @@
     <div class="editor-border-drag editor-border-left" data-editor-drag-border="left" aria-hidden="true"></div>
     <button class="editor-resize-handle" id="editorResizeHandle" type="button" aria-label="Resize editor" title="Resize editor"></button>
     <div class="editor-scroll-shell" id="editorScrollShell">
+    <div class="editor-manager-column" id="editorManagerColumn">
     <header class="editor-header" id="editorDragHandle">
-      <div class="editor-title-block">
-        <small id="editorSceneLabel">SCENE 1</small>
-        <div class="language-switch editor-language-switch" aria-label="Interface language">
-          <button type="button" data-ui-lang="zh">中文</button><span>/</span><button type="button" data-ui-lang="en">EN</button>
-        </div>
-      </div>
-
-      <div class="editor-actions editor-actions-primary" id="editorActionsControls">
-        <div class="save-choice-row">
-          <button class="primary save-return" id="saveLayout" data-i18n="saveReturn">Save</button>
-          <button class="discard-return" id="discardLayout" data-i18n="discardReturn">Don't save</button>
-        </div>
-        <div class="button-row">
-          <button id="exportLayout" data-i18n="exportJson">Export JSON</button>
-          <label class="file-button"><span data-i18n="importJson">Import JSON</span><input id="importLayout" type="file" accept="application/json,.json" /></label>
-        </div>
-        <button class="danger" id="resetLayout" data-i18n="resetDefaults">Reset to defaults</button>
-        <p class="save-status" id="saveStatus" data-i18n="saveStatusDefault">Editing uses a draft copy. Save commits it; Don't save restores the state from when Edit was opened. Both return home.</p>
-      </div>
-
-      <div class="editor-header-actions">
-        <button id="undoEdit" type="button" title="Undo (⌘/Ctrl+Z)" disabled>↶ Undo</button>
-        <button id="redoEdit" type="button" title="Redo (⇧⌘Z / Ctrl+Y)" disabled>↷ Redo</button>
+      <div class="editor-control-row editor-control-row-primary">
         <button id="collapseEditor" type="button" title="Collapse editor">− Collapse</button>
+        <button class="editor-language-toggle" data-ui-language-toggle type="button" aria-label="切换到中文" title="切换到中文">文/A</button>
         <a class="preview-link" id="previewLink" href="./" title="Open normal preview" data-i18n="preview">Preview</a>
       </div>
+      <div class="editor-control-row editor-header-actions">
+        <button id="undoEdit" type="button" title="Undo (⌘/Ctrl+Z)" disabled>↶ Undo</button>
+        <button id="redoEdit" type="button" title="Redo (⇧⌘Z / Ctrl+Y)" disabled>↷ Redo</button>
+      </div>
+      <div class="editor-control-row editor-actions editor-actions-primary" id="editorActionsControls">
+        <button id="exportLayout" data-i18n="exportJson">Export JSON</button>
+        <label class="file-button"><span data-i18n="importJson">Import JSON</span><input id="importLayout" type="file" accept="application/json,.json" /></label>
+      </div>
+      <div class="editor-control-row save-choice-row">
+        <button class="primary save-return" id="saveLayout" data-i18n="saveReturn">Save</button>
+        <button class="discard-return" id="discardLayout" data-i18n="discardReturn">Don't save</button>
+      </div>
+      <output class="save-status" id="saveStatus" aria-live="polite"></output>
+      <button id="resetLayout" type="button" hidden data-i18n="resetDefaults">Reset to defaults</button>
     </header>
 
     <section class="editor-section scene-navigation" id="sceneNavigationControls">
@@ -86,6 +79,14 @@
         <button type="button" data-scene-jump="7">第7幕</button>
       </div>
       <div class="scene-visibility-row"><button type="button" id="toggleSceneVisibility" data-i18n="hideScene">Hide current scene</button><span class="hint" id="sceneVisibilityStatus"></span></div>
+      <div class="scene-group-filter" id="sceneGroupFilter">
+        <div class="section-title"><span data-i18n="sceneGroupView">Scene 1 group view</span></div>
+        <div class="scene-jump-row scene-group-filter-row">
+          <button type="button" data-scene-group="reality" data-i18n="realityGroup">Reality</button>
+          <button type="button" data-scene-group="digital" data-i18n="digitalGroup">Digital</button>
+          <button type="button" data-scene-group="all" data-i18n="allGroups">Both</button>
+        </div>
+      </div>
       <p class="asset-note" data-i18n="sceneEditNote">Only the current scene is shown in Edit Mode. Use the scene buttons above to switch scenes; page scrolling is disabled.</p>
     </section>
 
@@ -97,7 +98,9 @@
       </div>
       <p class="asset-note" data-i18n="siteTitleNote">The browser tab title follows the current website language.</p>
     </section>
+    </div>
 
+    <div class="editor-layers-column" id="editorLayersColumn">
     <section class="editor-section" id="layersControls">
       <div class="section-title"><span data-i18n="layers">Layers</span><span class="hint" id="selectionCount">select / add</span></div>
       <div class="add-layer-row">
@@ -108,10 +111,11 @@
         <button id="bindLayers" type="button" disabled data-i18n="bindSelected">Bind selected</button>
         <button id="unbindLayers" type="button" disabled data-i18n="unbind">Unbind</button>
       </div>
-      <p class="binding-note" data-i18n="bindingNote">Hold Command (⌘) while clicking the canvas or layer names to multi-select. Bound layers keep their relative position: moving any member moves the whole bound group by the same X / Y offset, and the group also scrolls together from Scene 1 → 2. Scale, rotation and appearance remain independently editable.</p>
       <div class="layer-list" id="layerList"></div>
     </section>
+    </div>
 
+    <div class="editor-inspector-column" id="editorInspectorColumn">
     <section class="editor-section properties" id="propertiesPanel">
       <div class="section-title"><span data-i18n="transform">Transform</span><span id="selectedName" class="hint">None</span></div>
       <div class="property-grid">
@@ -122,6 +126,9 @@
         <label><span data-i18n="opacity">Opacity</span> <input id="propOpacity" type="number" step="0.05" min="0" max="1" /></label>
         <label><span data-i18n="zIndex">Layer</span> <input id="propZ" type="number" step="1" min="1" /></label>
       </div>
+      <label class="stacked-field"><span data-i18n="displayGroup">Display group</span>
+        <select id="displayGroup"><option value="reality" data-i18n="realityGroup">Reality</option><option value="digital" data-i18n="digitalGroup">Digital</option><option value="spring">Spring</option><option value="summer">Summer</option><option value="autumn">Autumn</option><option value="winter">Winter</option></select>
+      </label>
       <div class="layer-order-row">
         <button id="sendBack" data-i18n="sendBack">Send back</button>
         <output id="currentLayerRank" class="current-layer-rank" aria-label="Current layer">1</output>
@@ -168,6 +175,10 @@
         <label><span data-i18n="weight">Weight</span> <input id="textFontWeight" type="number" min="100" max="900" step="10" /></label>
         <label><span data-i18n="letterPx">Letter px</span> <input id="textLetterSpacing" type="number" min="-50" max="100" step="0.5" /></label>
         <label><span data-i18n="lineHeight">Line height</span> <input id="textLineHeight" type="number" min="0.5" max="4" step="0.05" /></label>
+      </div>
+      <div class="property-grid text-property-grid">
+        <label><span data-i18n="textEnterDelay">Show after (ms)</span> <input id="textEnterDelay" type="number" min="0" max="60000" step="100" /></label>
+        <label><span data-i18n="textVisibleFor">Visible for (ms, 0 = always)</span> <input id="textVisibleFor" type="number" min="0" max="600000" step="100" /></label>
       </div>
       <label class="color-row"><span data-i18n="color">Color</span> <input id="textColor" type="color" value="#ffffff" /><input id="textColorHex" type="text" value="#ffffff" maxlength="9" /></label>
       <label class="stacked-field"><span data-i18n="align">Align</span>
@@ -243,6 +254,7 @@
       <label class="range-row"><span data-i18n="lensRadius">Lens radius</span><input id="xrayRadius" type="range" min="70" max="360" step="2" /><output id="xrayRadiusOut"></output></label>
       <label class="range-row"><span data-i18n="feather">Feather</span><input id="xrayFeather" type="range" min="0" max="140" step="2" /><output id="xrayFeatherOut"></output></label>
       <label class="range-row"><span data-i18n="triggerDist">Trigger dist.</span><input id="xrayActivationDistance" type="range" min="0" max="360" step="2" /><output id="xrayActivationDistanceOut"></output></label>
+      <label class="range-row"><span data-i18n="expansionSpeed">Click expansion</span><input id="xrayExpansionDuration" type="range" min="200" max="5000" step="50" /><output id="xrayExpansionDurationOut"></output></label>
       <label class="range-row" hidden aria-hidden="true"><span data-i18n="bodyInLens">Body in lens</span><input id="xrayMainOpacity" type="range" min="0" max="0" step="0.01" value="0" disabled /><output id="xrayMainOpacityOut">0%</output></label>
       <label class="range-row"><span data-i18n="perspective">Perspective</span><input id="xrayPerspectiveOpacity" type="range" min="0" max="1" step="0.01" /><output id="xrayPerspectiveOpacityOut"></output></label>
       <label class="range-row"><span data-i18n="rainDensity">Digital rain density</span><input id="digitalRainDensity" type="range" min="0.5" max="2.5" step="0.05" /><output id="digitalRainDensityOut"></output></label>
@@ -285,15 +297,17 @@
       <div class="section-title"><span data-i18n="centerGuides">Center guides</span><span class="hint" data-i18n="editorOnly">editor only</span></div>
       <label class="switch-row"><input id="guidesToggle" type="checkbox" checked /> <span data-i18n="showGuides">Show center guides</span></label>
     </section>
+    </div>
+    <div class="editor-column-resizer editor-column-resizer-layers" data-editor-column-resizer="layers" aria-hidden="true"></div>
+    <div class="editor-column-resizer editor-column-resizer-inspector" data-editor-column-resizer="inspector" aria-hidden="true"></div>
+    <div class="editor-column-resizer editor-column-resizer-inspector-width" data-editor-column-resizer="inspector-width" aria-hidden="true"></div>
 
 
-    <footer class="editor-footer" id="editorFooterControls" data-i18n="keyboardHelp">
-      ⌘ + click = multi-select · Bound layers = move + scroll together<br />⌘/Ctrl+Z = Undo · ⇧⌘Z / Ctrl+Y = Redo · 20 edit steps<br />Arrow keys = 1px · Shift + Arrow = 10px
-    </footer>
+    <footer class="editor-footer" id="editorFooterControls" hidden></footer>
     </div>
   </aside>
 
-  <script src="scenes/manifest.js?v=62"></script>
-  <script src="app.js?v=62"></script>
+  <script src="scenes/manifest.js?v=67"></script>
+  <script src="app.js?v=67"></script>
 </body>
 </html>

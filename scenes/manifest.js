@@ -1,6 +1,10 @@
 (() => {
   'use strict';
 
+  /** @typedef {import('../src/types').SceneDefinition} SceneDefinition */
+  /** @typedef {import('../src/types').VideoController} VideoController */
+
+  /** @type {Map<number, SceneDefinition>} */
   const modules = new Map();
   const manifest = [
     { id: 1, name: 'Scene 1', html: 'scenes/scene-1/scene.html', style: 'scenes/scene-1/scene.css', script: 'scenes/scene-1/scene.js' },
@@ -14,6 +18,7 @@
 
   window.JoeScenes = {
     manifest,
+    /** @param {SceneDefinition} definition */
     register(definition) {
       if (!definition || !Number.isFinite(Number(definition.id))) throw new Error('A scene module must have a numeric id.');
       modules.set(Number(definition.id), definition);
@@ -366,7 +371,9 @@
       const id = Number(sceneId);
       return {
         videoOpacity: { 2: id === 2 ? 1 : 0, 3: id === 3 ? 1 : 0, 4: id === 4 ? 1 : 0 },
-        textOpacity: { 2: id === 3 ? 1 : 0, 3: id === 4 ? 1 : 0, 4: 0 },
+        // The active chapter's text is visible from its first frame. Per-layer
+        // displayTiming in the runtime controls any intentional delay.
+        textOpacity: { 2: id === 2 ? 1 : 0, 3: id === 3 ? 1 : 0, 4: id === 4 ? 1 : 0 },
         scene5ContentOpacity: id === 5 ? 1 : 0
       };
     }
@@ -374,10 +381,10 @@
     function navigationFirstFrameTarget(sceneId, carryPreviousCaption = false) {
       const target = firstFrameVisualTarget(sceneId);
       const id = Number(sceneId);
-      if (!carryPreviousCaption) {
-        if (id === 3) target.textOpacity[2] = 0;
-        if (id === 4) target.textOpacity[3] = 0;
-      }
+      // Every chapter starts clean: never carry the previous chapter's text
+      // into Scene 3 or Scene 4, even during a sequential wheel transition.
+      if (id === 3) target.textOpacity[2] = 0;
+      if (id === 4) target.textOpacity[3] = 0;
       return target;
     }
 
@@ -420,7 +427,7 @@
       const root = rootFor(sceneId);
       root?.querySelectorAll('[data-layer-id]').forEach(el => {
         if (el.tagName === 'VIDEO') return;
-        el.style.opacity = String(story.visuals.textOpacity[sceneId] ?? 1);
+        /** @type {HTMLElement} */ (el).style.opacity = String(story.visuals.textOpacity[sceneId] ?? 1);
       });
     }
 
@@ -785,19 +792,19 @@
     function updateCaptionTimeline(sceneId, elapsedSeconds) {
       const t = Math.max(0, Number(elapsedSeconds) || 0);
       if (sceneId === 2) {
-        story.visuals.textOpacity[2] = smoothstep((t - 2) / CAPTION_FADE_IN_SECONDS);
+        story.visuals.textOpacity[2] = 1;
         applyVisuals(2);
         return;
       }
       if (sceneId === 3) {
-        story.visuals.textOpacity[2] = 1 - smoothstep(t / PREVIOUS_CAPTION_FADE_OUT_SECONDS);
-        story.visuals.textOpacity[3] = smoothstep((t - 2) / CAPTION_FADE_IN_SECONDS);
+        story.visuals.textOpacity[2] = 0;
+        story.visuals.textOpacity[3] = 1;
         applyVisuals(2, 3);
         return;
       }
       if (sceneId === 4) {
-        story.visuals.textOpacity[3] = 1 - smoothstep(t / PREVIOUS_CAPTION_FADE_OUT_SECONDS);
-        story.visuals.textOpacity[4] = smoothstep((t - 2) / CAPTION_FADE_IN_SECONDS);
+        story.visuals.textOpacity[3] = 0;
+        story.visuals.textOpacity[4] = 1;
         applyVisuals(3, 4);
       }
     }
@@ -1245,8 +1252,11 @@
       }
     }
 
+    /** @param {number} sceneId @param {HTMLElement} root @param {HTMLVideoElement} video @returns {VideoController} */
     function registerController(sceneId, root, video) {
-      const id = Number(sceneId);
+      /** @type {import('../src/types').SceneId} */
+      const id = /** @type {import('../src/types').SceneId} */ (Number(sceneId));
+      /** @type {VideoController} */
       const controller = {
         id,
         root,
@@ -1644,7 +1654,12 @@
           const duration = sourceId >= 2 && sourceId <= 4
             ? transitionCrossfadeMs(sourceId)
             : (id >= 2 && id <= 4 ? transitionCrossfadeMs(id) : DEFAULT_VIDEO_CROSSFADE_MS);
-          const ok = await visualCrossfadeToFirstFrame(id, duration, { carryPreviousCaption: sourceId === id - 1 });
+          // Direct scene selection must begin from a clean first frame. Carrying
+          // the previous caption is reserved for the deliberate sequential
+          // cinematic transition, never for a manual/top-navigation jump.
+          const ok = await visualCrossfadeToFirstFrame(id, duration, {
+            carryPreviousCaption: sourceId === id - 1 && reason === 'wheel-navigation'
+          });
           if (!ok || navToken !== story.navigationToken) return story.activeDomainId;
           setActiveDomain(id, { reason });
         }
@@ -1660,6 +1675,12 @@
 
       // Blog / Contact are ordinary black full-screen pages. The active
       // cinematic frame leaves vertically under deterministic program control.
+      // Hide Scene 5 before unlocking the stack so the browser never paints a
+      // one-frame flash of the cinematic scene during the scroll to Scene 6/7.
+      if (current === 5) {
+        story.visuals.scene5ContentOpacity = 0;
+        applyVisuals(5);
+      }
       setStackLocked(false);
       setStackExitForward(false);
       const targetY = sceneStartY(id);
@@ -1746,14 +1767,17 @@
     return story;
   }
 
+  /** @param {{ editMode?: boolean, sceneId?: number, rootId?: string, videoId?: string }} options */
   window.createJoeSimpleVideoController = function createJoeSimpleVideoController({
     editMode = false,
     sceneId,
     rootId,
     videoId
   } = {}) {
-    const root = document.getElementById(rootId);
-    const video = document.getElementById(videoId);
+    /** @type {HTMLElement|null} */
+    const root = document.getElementById(rootId || '');
+    /** @type {HTMLVideoElement|null} */
+    const video = /** @type {HTMLVideoElement|null} */ (document.getElementById(videoId || ''));
     if (!root || !video) return {};
 
     if (editMode) {
@@ -1767,8 +1791,8 @@
       story = createStoryEngine(false);
       window.__joeSimpleVideoStory = story;
     }
-    const controller = story.registerController(sceneId, root, video);
-    story.installGlobalHandlers();
+    const controller = story.registerController?.(sceneId || 1, root, video);
+    story.installGlobalHandlers?.();
     return controller;
   };
 })();

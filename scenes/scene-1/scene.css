@@ -57,8 +57,21 @@ body.is-editing .scene-one-sticky {
   contain: strict;
   will-change: contents;
 }
+.scene-one-interaction-surface {
+  position: absolute;
+  inset: 0;
+  z-index: 200;
+  background: transparent;
+  pointer-events: auto;
+  touch-action: pan-y pinch-zoom;
+}
+body.is-editing .scene-one-interaction-surface { display: none; }
 body.is-editing .scene-one-shell .digital-rain-canvas {
   display: none;
+}
+body.is-editing .scene-one-shell.editor-group-view-digital .digital-rain-canvas,
+body.is-editing .scene-one-shell.editor-group-view-all .digital-rain-canvas {
+  display: block;
 }
 body.is-editing .design-stage { touch-action: pan-y; }
 

@@ -1,11 +1,51 @@
 (() => {
   'use strict';
+  /** @typedef {import('../src/types').Layout} Layout */
+  /** @typedef {import('../src/types').Layer} Layer */
+  /** @typedef {import('../src/types').ProjectExportPayload} ProjectExportPayload */
+  /** @typedef {import('../src/types').DynamicLayer} DynamicLayer */
+
+  /**
+   * Editor consumes the legacy runtime as a command surface. Keeping this
+   * boundary explicit lets the editor evolve independently from the renderer.
+   * @typedef {{
+   *   layout: Layout,
+   *   applyLayout: () => void,
+   *   applyLayer: (id: string) => void,
+   *   flushLayout: () => Promise<unknown>,
+   *   commitEditSession: () => Promise<unknown>,
+   *   discardEditSession: () => Promise<unknown>,
+   *   exportProject: () => Promise<unknown>,
+   *   importProject: (payload: unknown) => Promise<unknown>,
+   *   addTextLayer: (text: string, sceneId: number) => string,
+   *   addImageLayer: (file: File, sceneId: number) => Promise<string>,
+   *   removeLayer: (id: string) => Promise<unknown>,
+   *   replaceVideoLayer: (id: string, file: File) => Promise<unknown>,
+   *   [key: string]: any
+   * }} EditorRuntime
+   */
   let __joeMode = 'normal';
   try { __joeMode = sessionStorage.getItem('joe-view-mode-v1') || 'normal'; } catch (_) {}
   if (__joeMode !== 'edit') return;
 
-  const S = window.Scene1;
+  /** @type {EditorRuntime} */
+  const S = /** @type {EditorRuntime} */ (/** @type {unknown} */ (window.Scene1));
   const sceneRegistry = window.JoeScenes;
+  /** @param {string} id @returns {HTMLInputElement} */
+  const inputById = id => /** @type {HTMLInputElement} */ (document.getElementById(id));
+  /** @param {string} id @returns {HTMLSelectElement} */
+  const selectById = id => /** @type {HTMLSelectElement} */ (document.getElementById(id));
+  /** @param {string} id @returns {HTMLButtonElement} */
+  const buttonById = id => /** @type {HTMLButtonElement} */ (document.getElementById(id));
+  /** @param {string} id @returns {HTMLTextAreaElement} */
+  const textareaById = id => /** @type {HTMLTextAreaElement} */ (document.getElementById(id));
+  /** @param {string} id @returns {HTMLOutputElement} */
+  const outputById = id => /** @type {HTMLOutputElement} */ (document.getElementById(id));
+  /** @param {Event} event @returns {File|null} */
+  const firstFileFromEvent = event => {
+    const input = event.target instanceof HTMLInputElement ? event.target : null;
+    return input?.files?.[0] || null;
+  };
   const stage = document.getElementById('designStage');
   const sceneOneShell = document.getElementById('sceneOneShell');
   const panel = document.getElementById('propertiesPanel');
@@ -19,112 +59,129 @@
   const textControls = document.getElementById('textControls');
   const imageControls = document.getElementById('imageControls');
   const imageInfo = document.getElementById('imageInfo');
-  const imageWidth = document.getElementById('imageWidth');
-  const imageHeight = document.getElementById('imageHeight');
-  const restoreImageAspect = document.getElementById('restoreImageAspect');
-  const restoreImageSize = document.getElementById('restoreImageSize');
-  const deleteLayerBtn = document.getElementById('deleteLayer');
-  const bindBtn = document.getElementById('bindLayers');
-  const unbindBtn = document.getElementById('unbindLayers');
+  const imageWidth = inputById('imageWidth');
+  const imageHeight = inputById('imageHeight');
+  const restoreImageAspect = buttonById('restoreImageAspect');
+  const restoreImageSize = buttonById('restoreImageSize');
+  const deleteLayerBtn = buttonById('deleteLayer');
+  const bindBtn = buttonById('bindLayers');
+  const unbindBtn = buttonById('unbindLayers');
   const editorEl = document.getElementById('editor');
   const editorScrollShell = document.getElementById('editorScrollShell');
   const editorDragHandle = document.getElementById('editorDragHandle');
-  const undoBtn = document.getElementById('undoEdit');
-  const redoBtn = document.getElementById('redoEdit');
-  const collapseBtn = document.getElementById('collapseEditor');
+  const undoBtn = buttonById('undoEdit');
+  const redoBtn = buttonById('redoEdit');
+  const collapseBtn = buttonById('collapseEditor');
   const editorResizeHandle = document.getElementById('editorResizeHandle');
-  const editorDragBorders = [...document.querySelectorAll('[data-editor-drag-border]')];
+  const editorDragBorders = Array.from(document.querySelectorAll('[data-editor-drag-border]'));
   const previewLink = document.getElementById('previewLink');
   const currentLayerRank = document.getElementById('currentLayerRank');
+  const displayGroup = selectById('displayGroup');
   const editorSceneLabel = document.getElementById('editorSceneLabel');
   const currentSceneHint=document.getElementById('currentSceneHint');
   const toggleSceneVisibility=document.getElementById('toggleSceneVisibility');
   const sceneVisibilityStatus=document.getElementById('sceneVisibilityStatus');
   const videoControls = document.getElementById('videoControls');
-  const videoFit = document.getElementById('videoFit');
-  const videoScrub = document.getElementById('videoScrub');
-  const videoScrubOut = document.getElementById('videoScrubOut');
-  const videoOpacity = document.getElementById('videoOpacity');
-  const videoOpacityOut = document.getElementById('videoOpacityOut');
-  const videoSpeed = document.getElementById('videoSpeed');
-  const videoSpeedOut = document.getElementById('videoSpeedOut');
-  const replaceSelectedVideo = document.getElementById('replaceSelectedVideo');
+  const videoFit = selectById('videoFit');
+  const videoScrub = inputById('videoScrub');
+  const videoScrubOut = outputById('videoScrubOut');
+  const videoOpacity = inputById('videoOpacity');
+  const videoOpacityOut = outputById('videoOpacityOut');
+  const videoSpeed = inputById('videoSpeed');
+  const videoSpeedOut = outputById('videoSpeedOut');
+  const replaceSelectedVideo = buttonById('replaceSelectedVideo');
   const videoSceneHint = document.getElementById('videoSceneHint');
   const videoFileInfo = document.getElementById('videoFileInfo');
   const mediaScaleControls = document.getElementById('mediaScaleControls');
-  const mediaScaleRange = document.getElementById('mediaScaleRange');
-  const mediaScaleNumber = document.getElementById('mediaScaleNumber');
-  const mediaScaleOut = document.getElementById('mediaScaleOut');
+  const mediaScaleRange = inputById('mediaScaleRange');
+  const mediaScaleNumber = inputById('mediaScaleNumber');
+  const mediaScaleOut = outputById('mediaScaleOut');
   const xrayControls = document.getElementById('xrayControls');
   const transitionControls = document.getElementById('transitionControls');
   const videoCrossfadeRow = document.getElementById('videoCrossfadeRow');
-  const videoCrossfadeMs = document.getElementById('videoCrossfadeMs');
-  const videoCrossfadeMsOut = document.getElementById('videoCrossfadeMsOut');
+  const videoCrossfadeMs = inputById('videoCrossfadeMs');
+  const videoCrossfadeMsOut = outputById('videoCrossfadeMsOut');
   const videoPauseInertiaRow = document.getElementById('videoPauseInertiaRow');
-  const videoPauseInertiaMs = document.getElementById('videoPauseInertiaMs');
-  const videoPauseInertiaMsOut = document.getElementById('videoPauseInertiaMsOut');
+  const videoPauseInertiaMs = inputById('videoPauseInertiaMs');
+  const videoPauseInertiaMsOut = outputById('videoPauseInertiaMsOut');
   const sceneShadeControls = document.getElementById('sceneShadeControls');
   const sceneShadeHint = document.getElementById('sceneShadeHint');
   const backgroundControls = document.getElementById('backgroundControls');
-  const replaceBackgroundImage = document.getElementById('replaceBackgroundImage');
+  const replaceBackgroundImage = buttonById('replaceBackgroundImage');
   const backgroundFileInfo = document.getElementById('backgroundFileInfo');
   const guidesControls = document.getElementById('guidesControls');
-  const siteTitleEn = document.getElementById('siteTitleEn');
-  const siteTitleZh = document.getElementById('siteTitleZh');
+  const siteTitleEn = inputById('siteTitleEn');
+  const siteTitleZh = inputById('siteTitleZh');
 
   const imageProps = {
-    brightness: document.getElementById('imageBrightness'),
-    contrast: document.getElementById('imageContrast'),
-    saturation: document.getElementById('imageSaturation'),
-    hue: document.getElementById('imageHue')
+    brightness: inputById('imageBrightness'),
+    contrast: inputById('imageContrast'),
+    saturation: inputById('imageSaturation'),
+    hue: inputById('imageHue')
   };
   const imagePropsOut = {
-    brightness: document.getElementById('imageBrightnessOut'),
-    contrast: document.getElementById('imageContrastOut'),
-    saturation: document.getElementById('imageSaturationOut'),
-    hue: document.getElementById('imageHueOut')
+    brightness: outputById('imageBrightnessOut'),
+    contrast: outputById('imageContrastOut'),
+    saturation: outputById('imageSaturationOut'),
+    hue: outputById('imageHueOut')
   };
 
   const props = {
-    x: document.getElementById('propX'), y: document.getElementById('propY'),
-    scale: document.getElementById('propScale'), rotation: document.getElementById('propRotate'),
-    opacity: document.getElementById('propOpacity'), z: document.getElementById('propZ')
+    x: inputById('propX'), y: inputById('propY'),
+    scale: inputById('propScale'), rotation: inputById('propRotate'),
+    opacity: inputById('propOpacity'), z: inputById('propZ')
   };
 
   const textProps = {
-    contentEn: document.getElementById('textContentEn'),
-    contentZh: document.getElementById('textContentZh'),
-    fontFamily: document.getElementById('textFontFamily'),
-    boxWidth: document.getElementById('textBoxWidth'),
-    fontSize: document.getElementById('textFontSize'),
-    fontWeight: document.getElementById('textFontWeight'),
-    letterSpacing: document.getElementById('textLetterSpacing'),
-    lineHeight: document.getElementById('textLineHeight'),
-    color: document.getElementById('textColor'),
-    colorHex: document.getElementById('textColorHex'),
-    align: document.getElementById('textAlign'),
-    linkHref: document.getElementById('textLinkHref'),
-    linkTarget: document.getElementById('textLinkTarget'),
-    linkOffset: document.getElementById('textLinkOffset')
+    contentEn: textareaById('textContentEn'),
+    contentZh: textareaById('textContentZh'),
+    fontFamily: selectById('textFontFamily'),
+    boxWidth: inputById('textBoxWidth'),
+    fontSize: inputById('textFontSize'),
+    fontWeight: inputById('textFontWeight'),
+    letterSpacing: inputById('textLetterSpacing'),
+    lineHeight: inputById('textLineHeight'),
+    color: inputById('textColor'),
+    colorHex: inputById('textColorHex'),
+    align: selectById('textAlign'),
+    enterDelay: inputById('textEnterDelay'),
+    visibleFor: inputById('textVisibleFor'),
+    linkHref: inputById('textLinkHref'),
+    linkTarget: selectById('textLinkTarget'),
+    linkOffset: inputById('textLinkOffset')
   };
 
   const initial = Object.keys(S.layout.layers).find(id => Number(S.layout.layers[id]?.scene) === 1) || null;
   let primaryId = initial || null;
   let selectedIds = new Set(primaryId ? [primaryId] : []);
   let drag = null;
+  /** @type {Array<{sourceId: string, state: import('../src/types').TextLayer}>|null} */
   let layerClipboard = null;
   let saveTimer = 0;
   const HISTORY_LIMIT = 20;
+  /** @type {string[]} */
   let historyStack = [];
   let historyIndex = -1;
   let historyTimer = 0;
   let applyingHistory = false;
   let activeScene = 1;
+  let sceneOneGroupView = 'all';
+  const sceneGroupFilter = document.getElementById('sceneGroupFilter');
   let sceneSyncing = false;
 
   const clamp = (v, min, max) => Math.min(max, Math.max(min, v));
   const round = (v, n = 2) => Number(v.toFixed(n));
   const stateFor = (id = primaryId) => S.layout.layers[id];
+  /** @param {string} id @returns {Layer|undefined} */
+  const layerFor = id => S.layout.layers[id];
+  /** @param {Layer|undefined|null} layer @returns {layer is import('../src/types').TextLayer} */
+  const isTextLayer = layer => layer?.type === 'text';
+  /** @param {Layer|undefined|null} layer @returns {layer is import('../src/types').ImageLayer} */
+  const isImageLayer = layer => layer?.type === 'image';
+  /** @param {Layer|undefined|null} layer @returns {layer is import('../src/types').VideoLayer} */
+  const isVideoLayer = layer => layer?.type === 'video';
+  /** @param {Layer|undefined|null} layer @returns {layer is import('../src/types').ImageLayer|import('../src/types').VideoLayer} */
+  const isMediaLayer = layer => isImageLayer(layer) || isVideoLayer(layer);
   const elementFor = id => document.querySelector(`[data-layer-id="${CSS.escape(id)}"]`);
   const SCENE_IDS=(sceneRegistry?.manifest||[]).map(entry=>Number(entry.id)).filter(Number.isFinite).sort((a,b)=>a-b);
   const MIN_SCENE_ID=SCENE_IDS.length?Math.min(...SCENE_IDS):0;
@@ -137,15 +194,15 @@
   const I18N = {
     en: {
       editorTitle:'Content & Layout Editor', dragToolbar:'drag toolbar', borderDragHint:'drag the 1px outer border', preview:'Preview', siteSettings:'Site settings', browserTab:'browser tab', titleEn:'Title · English', titleZh:'Title · Chinese', siteTitleNote:'The browser tab title follows the current website language.',
-      editScene:'Edit scene', hideScene:'Hide current scene', showScene:'Show current scene', sceneVisible:'Visible', sceneHidden:'Hidden', sceneEditNote:'Only the current scene is shown in Edit Mode. Use the scene buttons above to switch scenes; page scrolling is disabled. Hidden scenes can still be opened here and restored.',
+      editScene:'Edit scene', hideScene:'Hide current scene', showScene:'Show current scene', sceneVisible:'Visible', sceneHidden:'Hidden', sceneEditNote:'Only the current scene is shown in Edit Mode. Use the scene buttons above to switch scenes; page scrolling is disabled. Hidden scenes can still be opened here and restored.', sceneGroupView:'Scene 1 group view', allGroups:'Both',
       video:'Video', videoFit:'Frame fit', videoFrame:'Video frame', videoOpacity:'Video opacity', videoSpeed:'Playback speed', replaceVideo:'Replace selected video', chooseVideo:'Choose video', resetVideo:'First frame', videoNote:'Edit mode keeps the video paused. Drag the frame slider to inspect a still frame; it never starts playback. Video opacity and playback speed are saved with the layer. Click the speed number to type an exact value.',
       layers:'Layers', addText:'+ Text', addImage:'+ Image', bindSelected:'Bind selected', unbind:'Unbind',
       bindingNote:'Hold Command (⌘) while clicking the canvas or layer names to multi-select. Bound layers keep their relative position: moving any member moves the whole bound group by the same X / Y offset, and the group also scrolls together from Scene 1 → 2. Scale, rotation and appearance remain independently editable.',
-      transform:'Transform', scale:'Scale', rotate:'Rotate', opacity:'Opacity', zIndex:'Layer', sendBack:'Send back', bringFront:'Bring front', deleteLayer:'Delete selected layer',
-      text:'Text', spacesPreserved:'English + Chinese are stored together', content:'Content', contentEn:'English', contentZh:'Chinese', fontFamily:'Font', textBoxWidth:'Text box width', fontSize:'Font size', weight:'Weight', letterPx:'Letter px', lineHeight:'Line height', color:'Color', align:'Align', alignLeft:'Left', alignCenter:'Center', alignRight:'Right', linkJump:'Link / Jump', linkOptional:'optional', linkTarget:'Target', linkOpen:'Open', sameTab:'Same tab', newTab:'New tab', jumpOffset:'Jump offset px', linkNote:'Use #section-id for an internal jump, a full URL for a website, or mailto: for email. Links are disabled while Edit Mode is active.',
+      transform:'Transform', displayGroup:'Display group', realityGroup:'Reality', digitalGroup:'Digital', scale:'Scale', rotate:'Rotate', opacity:'Opacity', zIndex:'Layer', sendBack:'Send back', bringFront:'Bring front', deleteLayer:'Delete selected layer',
+      text:'Text', textEnterDelay:'Show after (ms)', textVisibleFor:'Visible for (ms, 0 = always)', spacesPreserved:'English + Chinese are stored together', content:'Content', contentEn:'English', contentZh:'Chinese', fontFamily:'Font', textBoxWidth:'Text box width', fontSize:'Font size', weight:'Weight', letterPx:'Letter px', lineHeight:'Line height', color:'Color', align:'Align', alignLeft:'Left', alignCenter:'Center', alignRight:'Right', linkJump:'Link / Jump', linkOptional:'optional', linkTarget:'Target', linkOpen:'Open', sameTab:'Same tab', newTab:'New tab', jumpOffset:'Jump offset px', linkNote:'Use #section-id for an internal jump, a full URL for a website, or mailto: for email. Links are disabled while Edit Mode is active.',
       mediaScale:'Media scale', mediaScaleNote:'Scale images or videos with the slider, or type an exact number directly.', image:'Image', imageWidth:'Width', imageHeight:'Height', restoreAspect:'Original ratio', restoreSize:'Original size', imageSizeNote:'New images use the uploaded file’s real width/height ratio. Width and Height can then be changed independently, or adjusted with the side handles, for intentional horizontal/vertical stretching.', brightness:'Brightness', contrast:'Contrast', saturation:'Saturation', hue:'Hue', rotateLeft:'↶ 90°', rotateRight:'↷ 90°', resetColor:'Reset color',
       imageNote:'Color adjustments are non-destructive and are stored with the layout. Lower brightness and saturation to make daytime assets sit naturally in the night scene.',
-      xrayLens:'X-ray lens', normalPreview:'normal preview', lensRadius:'Lens radius', feather:'Feather', triggerDist:'Trigger dist.', bodyInLens:'Body in lens', perspective:'Perspective', skeleton:'Skeleton', rainDensity:'Digital rain density', rainDigitSize:'Digit size',
+      xrayLens:'X-ray lens', normalPreview:'normal preview', lensRadius:'Lens radius', feather:'Feather', triggerDist:'Trigger dist.', expansionSpeed:'Click expansion (ms)', bodyInLens:'Body in lens', perspective:'Perspective', skeleton:'Skeleton', rainDensity:'Digital rain density', rainDigitSize:'Digit size',
       xrayNote:'Inside the lens, the normal background and character body are cut away so the perspective layers and digital rain stay clear. Rain density and digit size are adjustable independently.',
       sceneTransition:'Scene transition', travel:'Travel', foregroundSpeed:'Foreground speed', backgroundSpeed:'Background speed', bottomDarken:'Bottom darken', pageDwellRatio:'Page dwell ratio', videoCrossfade:'Video crossfade', videoPauseInertia:'Up-scroll pause delay',
       transitionNote:'Page dwell ratio adds a pinned scroll distance after the scene is fully in place. Only after that dwell is consumed does the scene transition begin; scrolling back reverses the transition and restores the saved position.',
@@ -163,15 +220,15 @@
     },
     zh: {
       editorTitle:'内容与布局编辑器', dragToolbar:'拖动工具栏', borderDragHint:'拖动外侧 1px 边框移动编辑器', preview:'预览', siteSettings:'网站设置', browserTab:'网页页签', titleEn:'页签 · 英文', titleZh:'页签 · 中文', siteTitleNote:'浏览器页签会根据网站当前语言自动使用对应标题。',
-      editScene:'编辑场景', hideScene:'隐藏当前幕', showScene:'显示当前幕', sceneVisible:'显示中', sceneHidden:'已隐藏', sceneEditNote:'编辑模式只显示当前幕。请使用上方场景按钮切换页面；页面滚动已禁用。被隐藏的幕仍可在这里打开并恢复。',
+      editScene:'编辑场景', hideScene:'隐藏当前幕', showScene:'显示当前幕', sceneVisible:'显示中', sceneHidden:'已隐藏', sceneEditNote:'编辑模式只显示当前幕。请使用上方场景按钮切换页面；页面滚动已禁用。被隐藏的幕仍可在这里打开并恢复。', sceneGroupView:'第1幕组别视图', allGroups:'同时显示',
       video:'视频', videoFit:'画面填充', videoFrame:'视频帧进度', videoOpacity:'视频透明度', videoSpeed:'播放速度', replaceVideo:'更换当前视频', chooseVideo:'选择视频', resetVideo:'回到首帧', videoNote:'编辑模式下视频始终暂停。拖动“视频帧进度”只定位并显示对应静止画面，松手不会播放；视频透明度和播放速度都会随布局保存。速度右侧数字可直接点击输入。',
       layers:'图层', addText:'+ 文字', addImage:'+ 图片', bindSelected:'绑定所选图层', unbind:'解除绑定',
       bindingNote:'按住 Command（⌘）点击画布或图层名称可多选。绑定后的图层会保持相对位置：移动其中任意一个成员时，整组都会获得相同的 X / Y 位移；第一幕 → 第二幕滚动时也会一起移动。缩放、旋转和外观仍可单独编辑。',
-      transform:'变换', scale:'缩放', rotate:'旋转', opacity:'透明度', zIndex:'图层', sendBack:'移到后层', bringFront:'移到前层', deleteLayer:'删除所选图层',
-      text:'文字', spacesPreserved:'中英文同时维护', content:'内容', contentEn:'英文', contentZh:'中文', fontFamily:'字体', textBoxWidth:'文本框宽度', fontSize:'字号', weight:'字重', letterPx:'字间距 px', lineHeight:'行高', color:'颜色', align:'对齐', alignLeft:'左对齐', alignCenter:'居中', alignRight:'右对齐', linkJump:'链接 / 跳转', linkOptional:'可选', linkTarget:'目标地址', linkOpen:'打开方式', sameTab:'当前页', newTab:'新标签页', jumpOffset:'跳转偏移 px', linkNote:'内部跳转填写 #section-id，网站填写完整 URL，邮箱填写 mailto:。编辑模式下所有链接均不会跳转。',
+      transform:'变换', displayGroup:'显示组', realityGroup:'现实组', digitalGroup:'数字组', scale:'缩放', rotate:'旋转', opacity:'透明度', zIndex:'图层', sendBack:'移到后层', bringFront:'移到前层', deleteLayer:'删除所选图层',
+      text:'文字', textEnterDelay:'进入后延迟显示（毫秒）', textVisibleFor:'显示时长（毫秒，0 = 始终显示）', spacesPreserved:'中英文同时维护', content:'内容', contentEn:'英文', contentZh:'中文', fontFamily:'字体', textBoxWidth:'文本框宽度', fontSize:'字号', weight:'字重', letterPx:'字间距 px', lineHeight:'行高', color:'颜色', align:'对齐', alignLeft:'左对齐', alignCenter:'居中', alignRight:'右对齐', linkJump:'链接 / 跳转', linkOptional:'可选', linkTarget:'目标地址', linkOpen:'打开方式', sameTab:'当前页', newTab:'新标签页', jumpOffset:'跳转偏移 px', linkNote:'内部跳转填写 #section-id，网站填写完整 URL，邮箱填写 mailto:。编辑模式下所有链接均不会跳转。',
       mediaScale:'素材缩放', mediaScaleNote:'图片和视频都可以用滑杆放大 / 缩小，也可以直接手动输入精确倍率。', image:'图片', imageWidth:'宽度', imageHeight:'高度', restoreAspect:'恢复原比例', restoreSize:'恢复原尺寸', imageSizeNote:'新插入图片默认严格使用上传素材的真实宽高比例。之后可独立修改宽度和高度，或拖动四边手柄，实现有意的横向 / 纵向拉伸。', brightness:'亮度', contrast:'对比度', saturation:'饱和度', hue:'色相', rotateLeft:'↶ 90°', rotateRight:'↷ 90°', resetColor:'重置颜色',
       imageNote:'颜色调整为非破坏式并会随布局保存。夜景中建议适当降低亮度与饱和度，让白天素材自然融入画面。',
-      xrayLens:'X 光透视镜', normalPreview:'正常预览', lensRadius:'透视半径', feather:'羽化', triggerDist:'触发距离', bodyInLens:'镜内主体', perspective:'透视层', skeleton:'骨骼层', rainDensity:'数字雨密度', rainDigitSize:'雨滴大小',
+      xrayLens:'X 光透视镜', normalPreview:'正常预览', lensRadius:'透视半径', feather:'羽化', triggerDist:'触发距离', expansionSpeed:'点击扩散时长（毫秒）', bodyInLens:'镜内主体', perspective:'透视层', skeleton:'骨骼层', rainDensity:'数字雨密度', rainDigitSize:'雨滴大小',
       xrayNote:'透视光圈内会切掉正常背景和人物主体，让背景透视、数字雨与人物透视保持清晰。数字雨密度和雨滴大小可独立调节。',
       sceneTransition:'场景过渡', travel:'上移距离', foregroundSpeed:'前景速度', backgroundSpeed:'背景速度', bottomDarken:'底部变暗', pageDwellRatio:'页面暂留比例', videoCrossfade:'视频交叉过渡', videoPauseInertia:'上滚惯性暂停延迟',
       transitionNote:'当前幕完全到位后才开始计算过渡。继续向下滚动时元素和背景按参数移动；从下一幕向上返回时会按进度反向归位。',
@@ -276,11 +333,14 @@
     if (currentSceneHint) currentSceneHint.textContent = sceneName(activeScene);
     document.querySelectorAll('[data-scene-jump]').forEach(button => button.classList.toggle('is-active', Number(button.dataset.sceneJump) === activeScene));
     const sceneOneOnly = activeScene === 1;
+    const groupFilter = document.getElementById('sceneGroupFilter');
+    if (groupFilter) groupFilter.hidden = !sceneOneOnly;
+    document.querySelectorAll('[data-scene-group]').forEach(button => button.classList.toggle('is-active', sceneOneOnly && button.dataset.sceneGroup === sceneOneGroupView));
     if (xrayControls) xrayControls.hidden = !sceneOneOnly;
     if (transitionControls) transitionControls.hidden = false;
     if(sceneShadeControls)sceneShadeControls.hidden=false;
     if (sceneShadeHint) sceneShadeHint.textContent = sceneName(activeScene);
-    if(backgroundControls)backgroundControls.hidden=sceneOneOnly;
+    if(backgroundControls)backgroundControls.hidden=!sceneOneOnly;
     if (guidesControls) guidesControls.hidden = !sceneOneOnly;
     const addTextButton = document.getElementById('addText');
     const addImageInput = document.getElementById('addImage');
@@ -291,6 +351,8 @@
     if(typeof syncBg==='function')syncBg();
     if(typeof syncSceneShades==='function')syncSceneShades();
     if(typeof syncTransition==='function')syncTransition();
+    applySceneGroupView();
+    syncSceneGroupFilterUi();
   }
 
   function setActiveScene(scene, options = {}) {
@@ -336,6 +398,7 @@
     return { width: el.offsetWidth || el.naturalWidth || 1, height: el.offsetHeight || el.naturalHeight || 1 };
   }
 
+  /** @returns {string} */
   function historySnapshot() {
     return JSON.stringify(S.layout);
   }
@@ -374,6 +437,7 @@
     historyTimer = setTimeout(captureHistoryNow, 240);
   }
 
+  /** @param {number} index */
   function applyHistory(index) {
     if (index < 0 || index >= historyStack.length || index === historyIndex) return;
     clearTimeout(historyTimer);
@@ -452,8 +516,9 @@
   }
 
   function renderLayerList() {
-    const sceneIds = Object.keys(S.layout.layers).filter(id => layerScene(id) === activeScene);
-    const validSelected = selectedArray().filter(id => layerScene(id) === activeScene);
+    const sceneIds = Object.keys(S.layout.layers).filter(id => layerScene(id) === activeScene && (activeScene !== 1 || sceneOneGroupView === 'all' || String(stateFor(id)?.displayGroup || 'reality') === sceneOneGroupView));
+    const groupAllows = id => activeScene !== 1 || sceneOneGroupView === 'all' || String(stateFor(id)?.displayGroup || 'reality') === sceneOneGroupView;
+    const validSelected = selectedArray().filter(id => layerScene(id) === activeScene && groupAllows(id));
     if (!validSelected.length) {
       const fallback = sceneIds.sort((a,b) => (stateFor(b)?.z || 0) - (stateFor(a)?.z || 0))[0] || null;
       selectedIds = new Set(fallback ? [fallback] : []);
@@ -462,9 +527,10 @@
 
     layerList.innerHTML = '';
 
-    if (activeScene !== 1) {
+    if (activeScene === 1) {
       const backgroundRow = document.createElement('div');
       backgroundRow.className = 'layer-row scene-background-row';
+      backgroundRow.hidden = sceneOneGroupView === 'digital';
       backgroundRow.dataset.id = '__sceneBackground';
       backgroundRow.innerHTML = `
         <button class="visibility background-row-static" type="button" tabindex="-1" aria-hidden="true">▣</button>
@@ -511,6 +577,30 @@
         });
         layerList.appendChild(row);
       });
+  }
+
+  function applySceneGroupView() {
+    document.querySelectorAll('[data-layer-id]').forEach(el => {
+      const layer = el.dataset.layerId ? stateFor(el.dataset.layerId) : null;
+      const hidden = activeScene === 1 && sceneOneGroupView !== 'all' && layer && String(layer.displayGroup || 'reality') !== sceneOneGroupView;
+      el.classList.toggle('editor-group-filter-hidden', Boolean(hidden));
+    });
+    const shell = document.getElementById('sceneOneShell');
+    shell?.classList.toggle('editor-group-view-digital', activeScene === 1 && sceneOneGroupView === 'digital');
+    shell?.classList.toggle('editor-group-view-all', activeScene === 1 && sceneOneGroupView === 'all');
+    renderLayerList();
+  }
+
+  function syncSceneGroupFilterUi() {
+    const groupFilter = document.getElementById('sceneGroupFilter');
+    if (groupFilter) groupFilter.hidden = activeScene !== 1;
+    document.querySelectorAll('[data-scene-group]').forEach(button => {
+      button.classList.toggle('is-active', activeScene === 1 && button.dataset.sceneGroup === sceneOneGroupView);
+      const key = button.dataset.sceneGroup === 'reality' ? 'realityGroup' : button.dataset.sceneGroup === 'digital' ? 'digitalGroup' : 'allGroups';
+      button.textContent = tr(key);
+    });
+    const title = groupFilter?.querySelector('[data-i18n="sceneGroupView"]');
+    if (title) title.textContent = tr('sceneGroupView');
   }
 
   function rotateVector(x, y, deg) {
@@ -569,11 +659,11 @@
   function syncTextControls() {
     const ids = selectedArray();
     const s = ids.length === 1 ? stateFor(ids[0]) : null;
-    const active = s?.type === 'text';
+    const active = isTextLayer(s);
     textControls.hidden = !active;
     if (!active) return;
-    const t = s.textStyle || {};
-    const el = elementFor(ids[0]);
+    const t = /** @type {import('../src/types').TextStyle} */ (s.textStyle || {});
+    const el = /** @type {HTMLElement|null} */ (elementFor(ids[0]));
     const computed = el ? getComputedStyle(el) : null;
     const fallbackText = typeof s.text === 'string' ? s.text : '';
     const enText = s.texts?.en ?? fallbackText;
@@ -582,19 +672,21 @@
     textProps.contentZh.value = zhText;
     textProps.fontFamily.value = t.fontFamily || 'inherit';
     const measuredWidth = Math.max(40, Math.round(el?.offsetWidth || el?.getBoundingClientRect?.().width || 300));
-    textProps.boxWidth.value = Math.round(Number(s.boxWidth || measuredWidth));
-    textProps.fontSize.value = t.fontSize ?? (computed ? Math.round(parseFloat(computed.fontSize) || 64) : 64);
-    textProps.fontWeight.value = t.fontWeight ?? (computed ? (parseInt(computed.fontWeight,10) || 400) : 700);
-    textProps.letterSpacing.value = t.letterSpacing ?? (computed && computed.letterSpacing !== 'normal' ? (parseFloat(computed.letterSpacing)||0) : 0);
-    textProps.lineHeight.value = t.lineHeight ?? (computed && computed.lineHeight !== 'normal' ? ((parseFloat(computed.lineHeight)||16)/(parseFloat(computed.fontSize)||16)) : 1.2);
+    textProps.boxWidth.value = String(Math.round(Number(s.boxWidth || measuredWidth)));
+    textProps.fontSize.value = String(t.fontSize ?? (computed ? Math.round(parseFloat(computed.fontSize) || 64) : 64));
+    textProps.fontWeight.value = String(t.fontWeight ?? (computed ? (parseInt(computed.fontWeight,10) || 400) : 700));
+    textProps.letterSpacing.value = String(t.letterSpacing ?? (computed && computed.letterSpacing !== 'normal' ? (parseFloat(computed.letterSpacing)||0) : 0));
+    textProps.lineHeight.value = String(t.lineHeight ?? (computed && computed.lineHeight !== 'normal' ? ((parseFloat(computed.lineHeight)||16)/(parseFloat(computed.fontSize)||16)) : 1.2));
     const resolvedColor = t.color || (computed?.color ? rgbToHex(computed.color) : '#ffffff');
     textProps.color.value = normaliseHex(resolvedColor);
     textProps.colorHex.value = normaliseHex(resolvedColor);
     textProps.align.value = t.align || computed?.textAlign || 'left';
+    textProps.enterDelay.value = String(Math.round(Number(s.displayTiming?.enterDelayMs) || 0));
+    textProps.visibleFor.value = String(Math.round(Number(s.displayTiming?.visibleForMs) || 0));
     const link = s.link || {};
     textProps.linkHref.value = link.href || '';
     textProps.linkTarget.value = link.target === '_blank' ? '_blank' : '_self';
-    textProps.linkOffset.value = Number(link.offset || 0);
+    textProps.linkOffset.value = String(Number(link.offset || 0));
   }
 
   function ensureImageStyle(s) {
@@ -603,8 +695,8 @@
   }
 
   function ensureSourceDimensions(id, s) {
-    if (!s || (s.type !== 'image' && s.type !== 'video')) return;
-    const el = elementFor(id);
+    if (!isMediaLayer(s)) return;
+    const el = /** @type {HTMLImageElement|HTMLVideoElement|null} */ (elementFor(id));
     const naturalWidth = s.type === 'video' ? el?.videoWidth : el?.naturalWidth;
     const naturalHeight = s.type === 'video' ? el?.videoHeight : el?.naturalHeight;
     if ((!s.sourceWidth || !s.sourceHeight) && naturalWidth > 0 && naturalHeight > 0) {
@@ -616,15 +708,15 @@
   function syncImageControls() {
     const ids = selectedArray();
     const s = ids.length === 1 ? stateFor(ids[0]) : null;
-    const active = s?.type === 'image';
+    const active = isImageLayer(s);
     imageControls.hidden = !active;
     if (!active) return;
     ensureSourceDimensions(ids[0], s);
     const dims = s.width && s.height ? `${Math.round(s.width)}×${Math.round(s.height)}` : '';
     const sourceDims = s.sourceWidth && s.sourceHeight ? `src ${Math.round(s.sourceWidth)}×${Math.round(s.sourceHeight)}` : '';
     imageInfo.textContent = [s.fileName || (s.core ? tr('builtIn') : tr('imageWord')), dims, sourceDims].filter(Boolean).join(' · ');
-    imageWidth.value = Math.max(1, Math.round(Number(s.width) || 1));
-    imageHeight.value = Math.max(1, Math.round(Number(s.height) || 1));
+    imageWidth.value = String(Math.max(1, Math.round(Number(s.width) || 1)));
+    imageHeight.value = String(Math.max(1, Math.round(Number(s.height) || 1)));
     const style = ensureImageStyle(s);
     imageProps.brightness.value = style.brightness ?? 1;
     imageProps.contrast.value = style.contrast ?? 1;
@@ -679,11 +771,11 @@
   function syncVideoControls() {
     const ids = selectedArray();
     const s = ids.length === 1 ? stateFor(ids[0]) : null;
-    const active = s?.type === 'video';
+    const active = isVideoLayer(s);
     videoControls.hidden = !active;
     if (!active) return;
     ensureSourceDimensions(ids[0], s);
-    const video = elementFor(ids[0]);
+    const video = /** @type {HTMLVideoElement|null} */ (elementFor(ids[0]));
     if (video?.tagName === 'VIDEO') pauseEditorVideo(video);
     videoFit.value = s.fit || 'cover';
     const duration = video && Number.isFinite(video.duration) && video.duration > 0 ? video.duration : 0;
@@ -769,6 +861,10 @@
     const rank = !multi ? (S.layerRank(ids[0]) ?? 1) : null;
     currentLayerRank.textContent = rank ?? '—';
     currentLayerRank.classList.toggle('is-multi', multi);
+    if (displayGroup) {
+      displayGroup.value = String(s?.displayGroup || 'reality');
+      displayGroup.disabled = multi || Number(s?.scene) !== 1;
+    }
     document.getElementById('sendBack').disabled = multi || rank >= S.layerCount(s ? layerScene(ids[0]) : activeScene);
     document.getElementById('bringFront').disabled = multi || rank <= 1;
     deleteLayerBtn.hidden=ids.length!==1;
@@ -1237,7 +1333,7 @@
   });
 
   document.getElementById('addImage').addEventListener('change', async e => {
-    const file = e.target.files?.[0];
+    const file = firstFileFromEvent(e);
     if (!file) return;
     saveStatus.textContent = tr('addingImage');
     try {
@@ -1248,7 +1344,7 @@
     } catch (err) {
       alert(tr('errAddImage', { error: err.message }));
     }
-    e.target.value = '';
+    if (e.target instanceof HTMLInputElement) e.target.value = '';
   });
 
   deleteLayerBtn.addEventListener('click', async () => {
@@ -1282,7 +1378,7 @@
   function updateBilingualText(language, value) {
     const ids = selectedArray();
     const s = ids.length === 1 ? stateFor(ids[0]) : null;
-    if (s?.type !== 'text') return;
+    if (!isTextLayer(s)) return;
     const texts = ensureBilingualText(s);
     texts[language] = value;
     s.text = texts.en || '';
@@ -1293,11 +1389,19 @@
   textProps.contentEn.addEventListener('input', () => updateBilingualText('en', textProps.contentEn.value));
   textProps.contentZh.addEventListener('input', () => updateBilingualText('zh', textProps.contentZh.value));
   [textProps.contentEn, textProps.contentZh].forEach(input => input.addEventListener('keydown', e => e.stopPropagation()));
+  displayGroup?.addEventListener('change', () => {
+    const ids = selectedArray();
+    if (ids.length !== 1 || Number(stateFor(ids[0])?.scene) !== 1) return;
+    stateFor(ids[0]).displayGroup = displayGroup.value;
+    S.applyLayer(ids[0]);
+    updateSelection();
+    autosave('Display group updated');
+  });
 
   textProps.fontFamily.addEventListener('change', () => {
     const ids = selectedArray();
     const s = ids.length === 1 ? stateFor(ids[0]) : null;
-    if (s?.type !== 'text') return;
+    if (!isTextLayer(s)) return;
     ensureTextStyle(s).fontFamily = textProps.fontFamily.value || 'inherit';
     S.applyLayer(ids[0]); updateSelection(); autosave('Text style updated');
   });
@@ -1305,7 +1409,7 @@
   textProps.boxWidth.addEventListener('input', () => {
     const ids = selectedArray();
     const s = ids.length === 1 ? stateFor(ids[0]) : null;
-    if (s?.type !== 'text') return;
+    if (!isTextLayer(s)) return;
     const width = Number(textProps.boxWidth.value);
     if (!Number.isFinite(width)) return;
     s.boxWidth = round(clamp(width, 40, 3000), 2);
@@ -1319,7 +1423,7 @@
     textProps[control].addEventListener('input', () => {
       const ids = selectedArray();
       const s = ids.length === 1 ? stateFor(ids[0]) : null;
-      if (s?.type !== 'text') return;
+      if (!isTextLayer(s)) return;
       const v = Number(textProps[control].value); if (!Number.isFinite(v)) return;
       ensureTextStyle(s)[key] = v;
       S.applyLayer(ids[0]); updateSelection(); autosave('Text style updated');
@@ -1342,7 +1446,7 @@
   function setTextColor(value) {
     const ids = selectedArray();
     const s = ids.length === 1 ? stateFor(ids[0]) : null;
-    if (s?.type !== 'text') return;
+    if (!isTextLayer(s)) return;
     const hex = normaliseHex(value);
     ensureTextStyle(s).color = hex;
     textProps.color.value = hex;
@@ -1354,16 +1458,26 @@
   textProps.align.addEventListener('change', () => {
     const ids = selectedArray();
     const s = ids.length === 1 ? stateFor(ids[0]) : null;
-    if (s?.type !== 'text') return;
+    if (!isTextLayer(s)) return;
     ensureTextStyle(s).align = textProps.align.value;
     S.applyLayer(ids[0]); updateSelection(); autosave('Text alignment updated');
   });
+  [[textProps.enterDelay, 'enterDelayMs', 60000], [textProps.visibleFor, 'visibleForMs', 600000]].forEach(([input, key, max]) => input.addEventListener('input', () => {
+    const ids = selectedArray();
+    const s = ids.length === 1 ? stateFor(ids[0]) : null;
+    if (!isTextLayer(s)) return;
+    if (!s.displayTiming) s.displayTiming = { enterDelayMs: 0, visibleForMs: 0 };
+    const value = Number(input.value);
+    if (!Number.isFinite(value)) return;
+    s.displayTiming[key] = clamp(Math.round(value), 0, max);
+    S.applyLayer(ids[0]); updateSelection(); autosave('Text timing updated');
+  }));
 
 
   function updateTextLink() {
     const ids = selectedArray();
     const s = ids.length === 1 ? stateFor(ids[0]) : null;
-    if (s?.type !== 'text') return;
+    if (!isTextLayer(s)) return;
     const href = textProps.linkHref.value.trim();
     const link = href ? { href, target: textProps.linkTarget.value === '_blank' ? '_blank' : '_self', offset: Number(textProps.linkOffset.value || 0) } : null;
     const anchor = elementFor(ids[0])?.closest('a');
@@ -1384,7 +1498,7 @@
   function updateSelectedImageDimension(key, rawValue) {
     const ids = selectedArray();
     const s = ids.length === 1 ? stateFor(ids[0]) : null;
-    if (s?.type !== 'image') return;
+    if (!isImageLayer(s)) return;
     const value = clamp(Number(rawValue) || 1, 1, 20000);
     const oldValue = Math.max(1, Number(s[key]) || 1);
     const factor = value / oldValue;
@@ -1414,7 +1528,7 @@
   restoreImageAspect?.addEventListener('click', () => {
     const ids = selectedArray();
     const s = ids.length === 1 ? stateFor(ids[0]) : null;
-    if (s?.type !== 'image') return;
+    if (!isImageLayer(s)) return;
     ensureSourceDimensions(ids[0], s);
     const sw = Number(s.sourceWidth || 0), sh = Number(s.sourceHeight || 0);
     if (!(sw > 0 && sh > 0)) return;
@@ -1430,7 +1544,7 @@
   restoreImageSize?.addEventListener('click', () => {
     const ids = selectedArray();
     const s = ids.length === 1 ? stateFor(ids[0]) : null;
-    if (s?.type !== 'image') return;
+    if (!isImageLayer(s)) return;
     ensureSourceDimensions(ids[0], s);
     const sw = Number(s.sourceWidth || 0), sh = Number(s.sourceHeight || 0);
     if (!(sw > 0 && sh > 0)) return;
@@ -1457,7 +1571,7 @@
   function rotateSelectedImage(delta) {
     const ids = selectedArray();
     const s = ids.length === 1 ? stateFor(ids[0]) : null;
-    if (s?.type !== 'image') return;
+    if (!isImageLayer(s)) return;
     const size = naturalSize(elementFor(ids[0]));
     const center = visualCenter(s, size);
     const nextRotation = round((Number(s.rotation) || 0) + delta, 2);
@@ -1474,7 +1588,7 @@
   document.getElementById('resetImageColor').addEventListener('click', () => {
     const ids = selectedArray();
     const s = ids.length === 1 ? stateFor(ids[0]) : null;
-    if (s?.type !== 'image') return;
+      if (!isImageLayer(s)) return;
     s.imageStyle = { brightness: 1, contrast: 1, saturation: 1, hue: 0 };
     S.applyLayer(ids[0]);
     syncImageControls();
@@ -1482,11 +1596,11 @@
   });
 
   replaceSelectedVideo?.addEventListener('change', async event => {
-    const file = event.target.files?.[0];
+    const file = firstFileFromEvent(event);
     if (!file) return;
     const ids = selectedArray();
     const id = ids.length === 1 && stateFor(ids[0])?.type === 'video' ? ids[0] : null;
-    if (!id) { event.target.value = ''; return; }
+    if (!id) { if (event.target instanceof HTMLInputElement) event.target.value = ''; return; }
     saveStatus.textContent = tr('replacingVideo');
     try {
       await S.replaceVideoLayer(id, file);
@@ -1497,14 +1611,14 @@
     } catch (error) {
       saveStatus.textContent = currentLang() === 'zh' ? `无法更换视频：${error.message}` : `Could not replace video: ${error.message}`;
     } finally {
-      event.target.value = '';
+      if (event.target instanceof HTMLInputElement) event.target.value = '';
     }
   });
 
   function setSelectedMediaScale(value) {
     const ids=selectedArray();
     const s=ids.length===1?stateFor(ids[0]):null;
-    if(!s||(s.type!=='image'&&s.type!=='video'))return;
+    if(!isMediaLayer(s))return;
     const next=clamp(Number(value)||1,.02,8);
     const oldScale=Math.max(.000001,Number(s.scale)||1),factor=next/oldScale;
     const anchorX=Number(s.x)||0,anchorY=Number(s.y)||0;
@@ -1527,8 +1641,8 @@
   videoFit.addEventListener('change', () => {
     const ids = selectedArray();
     const s = ids.length === 1 ? stateFor(ids[0]) : null;
-    if (s?.type !== 'video') return;
-    s.fit = videoFit.value;
+    if (!isVideoLayer(s)) return;
+    s.fit = /** @type {'cover'|'contain'|'fill'} */ (videoFit.value);
     S.applyLayer(ids[0]);
     autosave('Video fit updated');
   });
@@ -1547,7 +1661,7 @@
   videoOpacity?.addEventListener('input', () => {
     const ids = selectedArray();
     const s = ids.length === 1 ? stateFor(ids[0]) : null;
-    if (s?.type !== 'video') return;
+    if (!isVideoLayer(s)) return;
     s.opacity = clamp(Number(videoOpacity.value) || 0, 0, 1);
     props.opacity.value = round(s.opacity, 2);
     S.applyLayer(ids[0]);
@@ -1557,7 +1671,7 @@
   videoSpeed?.addEventListener('input', () => {
     const ids = selectedArray();
     const s = ids.length === 1 ? stateFor(ids[0]) : null;
-    if (s?.type !== 'video') return;
+    if (!isVideoLayer(s)) return;
     const scene = layerScene(ids[0]);
     // The cinematic speed control is intentionally scoped to Scenes 2–4.
     // Other video layers retain their stored rate unchanged.
@@ -1581,10 +1695,10 @@
     syncVideoControls();
   });
 
-  const sceneTopShade = document.getElementById('sceneTopShade');
-  const sceneTopShadeOut = document.getElementById('sceneTopShadeOut');
-  const sceneBottomShade = document.getElementById('sceneBottomShade');
-  const sceneBottomShadeOut = document.getElementById('sceneBottomShadeOut');
+  const sceneTopShade = inputById('sceneTopShade');
+  const sceneTopShadeOut = outputById('sceneTopShadeOut');
+  const sceneBottomShade = inputById('sceneBottomShade');
+  const sceneBottomShadeOut = outputById('sceneBottomShadeOut');
   function syncSceneShades() {
     const shade = ensureSceneShadeState(activeScene);
     if (sceneShadeHint) sceneShadeHint.textContent = sceneName(activeScene);
@@ -1602,11 +1716,11 @@
     autosave('Transition updated');
   }));
 
-  const bgX = document.getElementById('bgX'), bgY = document.getElementById('bgY'), bgZoom = document.getElementById('bgZoom');
-  const bgXOut = document.getElementById('bgXOut'), bgYOut = document.getElementById('bgYOut'), bgZoomOut = document.getElementById('bgZoomOut');
+  const bgX = inputById('bgX'), bgY = inputById('bgY'), bgZoom = inputById('bgZoom');
+  const bgXOut = outputById('bgXOut'), bgYOut = outputById('bgYOut'), bgZoomOut = outputById('bgZoomOut');
   function syncBg(){const bg=S.backgroundForScene(activeScene)||{};bgX.value=bg.x??50;bgY.value=bg.y??50;bgZoom.value=bg.zoom??1;bgXOut.textContent=`${Number(bg.x??50).toFixed(0)}%`;bgYOut.textContent=`${Number(bg.y??50).toFixed(0)}%`;bgZoomOut.textContent=`${Number(bg.zoom??1).toFixed(2)}×`;if(backgroundFileInfo){const dims=bg.sourceWidth&&bg.sourceHeight?`${Math.round(bg.sourceWidth)}×${Math.round(bg.sourceHeight)}`:'',sourceLabel=bg.src?(bg.fileName||(bg.src?.startsWith('uploads/')?tr('imageWord'):tr('builtIn'))):tr('noBackground');backgroundFileInfo.textContent=[sourceLabel,dims].filter(Boolean).join(' · ')}}
   replaceBackgroundImage?.addEventListener('change', async event => {
-    const file = event.target.files?.[0];
+    const file = firstFileFromEvent(event);
     if (!file) return;
     saveStatus.textContent = tr('replacingBackground');
     try {
@@ -1617,7 +1731,7 @@
     } catch (error) {
       saveStatus.textContent = currentLang() === 'zh' ? `无法更换背景：${error.message}` : `Could not replace background: ${error.message}`;
     } finally {
-      event.target.value = '';
+      if (event.target instanceof HTMLInputElement) event.target.value = '';
     }
   });
 
@@ -1625,39 +1739,42 @@
     const bg=S.backgroundForScene(activeScene);bg[key]=Number(input.value);if(activeScene===1)S.layout.background={...bg};S.applyLayout();syncBg();autosave();
   }));
 
-  const guidesToggle=document.getElementById('guidesToggle');
+  const guidesToggle=inputById('guidesToggle');
   function syncGuides(){if(guides)guides.style.display=guidesToggle?.checked?'block':'none';}
   guidesToggle?.addEventListener('change',syncGuides);
   syncGuides();
 
 
   const xr = {
-    radius: document.getElementById('xrayRadius'),
-    feather: document.getElementById('xrayFeather'),
-    activationDistance: document.getElementById('xrayActivationDistance'),
-    mainOpacity: document.getElementById('xrayMainOpacity'),
-    perspectiveOpacity: document.getElementById('xrayPerspectiveOpacity'),
-    bonesOpacity: document.getElementById('xrayBonesOpacity')
+    radius: inputById('xrayRadius'),
+    feather: inputById('xrayFeather'),
+    activationDistance: inputById('xrayActivationDistance'),
+    expansionDuration: inputById('xrayExpansionDuration'),
+    mainOpacity: inputById('xrayMainOpacity'),
+    perspectiveOpacity: inputById('xrayPerspectiveOpacity'),
+    bonesOpacity: inputById('xrayBonesOpacity')
   };
   const xrOut = {
-    radius: document.getElementById('xrayRadiusOut'),
-    feather: document.getElementById('xrayFeatherOut'),
-    activationDistance: document.getElementById('xrayActivationDistanceOut'),
-    mainOpacity: document.getElementById('xrayMainOpacityOut'),
-    perspectiveOpacity: document.getElementById('xrayPerspectiveOpacityOut'),
-    bonesOpacity: document.getElementById('xrayBonesOpacityOut')
+    radius: outputById('xrayRadiusOut'),
+    feather: outputById('xrayFeatherOut'),
+    activationDistance: outputById('xrayActivationDistanceOut'),
+    expansionDuration: outputById('xrayExpansionDurationOut'),
+    mainOpacity: outputById('xrayMainOpacityOut'),
+    perspectiveOpacity: outputById('xrayPerspectiveOpacityOut'),
+    bonesOpacity: outputById('xrayBonesOpacityOut')
   };
-  const rainDensity = document.getElementById('digitalRainDensity');
-  const rainDensityOut = document.getElementById('digitalRainDensityOut');
-  const rainDigitSize = document.getElementById('digitalRainDigitSize');
-  const rainDigitSizeOut = document.getElementById('digitalRainDigitSizeOut');
+  const rainDensity = inputById('digitalRainDensity');
+  const rainDensityOut = outputById('digitalRainDensityOut');
+  const rainDigitSize = inputById('digitalRainDigitSize');
+  const rainDigitSizeOut = outputById('digitalRainDigitSizeOut');
   function syncXray() {
     const x = S.layout.xray || {};
     xr.radius.value = x.radius; xr.feather.value = x.feather; xr.activationDistance.value = x.activationDistance ?? (Number(x.radius) * 0.5);
-    xr.mainOpacity.value = 0; xr.perspectiveOpacity.value = x.perspectiveOpacity; xr.bonesOpacity.value = x.bonesOpacity;
+    xr.mainOpacity.value = 0; xr.perspectiveOpacity.value = x.perspectiveOpacity; xr.bonesOpacity.value = x.bonesOpacity; xr.expansionDuration.value = x.expansionDurationMs ?? 1050;
     xrOut.radius.textContent = `${x.radius}px`;
     xrOut.feather.textContent = `${x.feather}px`;
     xrOut.activationDistance.textContent = `${Number(x.activationDistance ?? (Number(x.radius) * 0.5)).toFixed(0)}px`;
+    xrOut.expansionDuration.textContent = `${Math.round(Number(x.expansionDurationMs ?? 1050))}ms`;
     xrOut.mainOpacity.textContent = '0%';
     xrOut.perspectiveOpacity.textContent = `${Math.round(Number(x.perspectiveOpacity) * 100)}%`;
     xrOut.bonesOpacity.textContent = `${Math.round(Number(x.bonesOpacity) * 100)}%`;
@@ -1667,7 +1784,7 @@
     if (rainDensityOut) rainDensityOut.textContent = `${Number(rain.density ?? 1.60).toFixed(2)}×`;
     if (rainDigitSizeOut) rainDigitSizeOut.textContent = `${Number(rain.digitSize ?? 1.10).toFixed(2)}×`;
   }
-  [['radius','radius'],['feather','feather'],['activationDistance','activationDistance'],['perspectiveOpacity','perspectiveOpacity'],['bonesOpacity','bonesOpacity']].forEach(([inputKey,stateKey]) => {
+  [['radius','radius'],['feather','feather'],['activationDistance','activationDistance'],['expansionDuration','expansionDurationMs'],['perspectiveOpacity','perspectiveOpacity'],['bonesOpacity','bonesOpacity']].forEach(([inputKey,stateKey]) => {
     xr[inputKey].addEventListener('input', () => {
       S.layout.xray[stateKey] = Number(xr[inputKey].value);
       S.applyLayout();
@@ -1682,16 +1799,16 @@
     autosave('Digital rain updated');
   }));
 
-  const transitionLift = document.getElementById('transitionLift');
-  const transitionLiftOut = document.getElementById('transitionLiftOut');
-  const foregroundSpeed = document.getElementById('foregroundSpeed');
-  const foregroundSpeedOut = document.getElementById('foregroundSpeedOut');
-  const backgroundSpeed = document.getElementById('backgroundSpeed');
-  const backgroundSpeedOut = document.getElementById('backgroundSpeedOut');
-  const bottomShade = document.getElementById('bottomShade');
-  const bottomShadeOut = document.getElementById('bottomShadeOut');
-  const pageDwellRatio=document.getElementById('pageDwellRatio');
-  const pageDwellRatioOut=document.getElementById('pageDwellRatioOut');
+  const transitionLift = inputById('transitionLift');
+  const transitionLiftOut = outputById('transitionLiftOut');
+  const foregroundSpeed = inputById('foregroundSpeed');
+  const foregroundSpeedOut = outputById('foregroundSpeedOut');
+  const backgroundSpeed = inputById('backgroundSpeed');
+  const backgroundSpeedOut = outputById('backgroundSpeedOut');
+  const bottomShade = inputById('bottomShade');
+  const bottomShadeOut = outputById('bottomShadeOut');
+  const pageDwellRatio=inputById('pageDwellRatio');
+  const pageDwellRatioOut=outputById('pageDwellRatioOut');
   function ensureCinematicSettingsState(){
     if(!S.layout.cinematicSettings||typeof S.layout.cinematicSettings!=='object')S.layout.cinematicSettings={};
     S.layout.cinematicSettings.pauseInertiaMs=clamp(Number(S.layout.cinematicSettings.pauseInertiaMs??180)||0,0,1200);
@@ -1782,7 +1899,23 @@
       const scene = Number(button.dataset.sceneJump);
       setActiveScene(scene);
       syncEditSceneIsolation(scene);
+      const groupFilter = document.getElementById('sceneGroupFilter');
+      if (groupFilter) groupFilter.hidden = scene !== 1;
     });
+  });
+
+  document.querySelectorAll('[data-scene-group]').forEach(button => {
+    button.addEventListener('click', () => {
+      if (activeScene !== 1) return;
+      sceneOneGroupView = button.dataset.sceneGroup || 'all';
+      updateSceneUi();
+    });
+  });
+  document.addEventListener('click', event => {
+    const button = event.target instanceof Element ? event.target.closest('[data-scene-group]') : null;
+    if (!button || activeScene !== 1) return;
+    sceneOneGroupView = button.dataset.sceneGroup || 'all';
+    updateSceneUi();
   });
 
   // Edit Mode is scene-isolated: wheel/touch gestures may scroll the toolbar,
@@ -1839,6 +1972,68 @@
     }
   });
   let moduleResize = null;
+  let columnResize = null;
+  const finishColumnResize = () => {
+    if (!columnResize) return;
+    columnResize = null;
+    saveEditorUi();
+  };
+  const editorColumns = {
+    manager: document.getElementById('editorManagerColumn'),
+    layers: document.getElementById('editorLayersColumn'),
+    inspector: document.getElementById('editorInspectorColumn')
+  };
+  const columnResizers = [...editorEl.querySelectorAll('[data-editor-column-resizer]')];
+  function applyColumnWidths() {
+    const managerWidth = Number(editorColumns.manager?.dataset.columnWidth) || 224;
+    const layersWidth = Number(editorColumns.layers?.dataset.columnWidth) || 304;
+    if (editorColumns.manager) editorColumns.manager.style.width = `${managerWidth}px`;
+    if (editorColumns.layers) { editorColumns.layers.style.left = `${managerWidth}px`; editorColumns.layers.style.width = `${layersWidth}px`; }
+    const inspectorWidth = Number(editorColumns.inspector?.dataset.columnWidth) || 560;
+    if (editorColumns.inspector) { editorColumns.inspector.style.left = `${managerWidth + layersWidth}px`; editorColumns.inspector.style.width = `${inspectorWidth}px`; }
+    const first = editorEl.querySelector('.editor-column-resizer-layers');
+    const second = editorEl.querySelector('.editor-column-resizer-inspector');
+    const third = editorEl.querySelector('.editor-column-resizer-inspector-width');
+    if (first) first.style.left = `${managerWidth - 4}px`;
+    if (second) second.style.left = `${managerWidth + layersWidth - 4}px`;
+    if (third) third.style.left = `${managerWidth + layersWidth + inspectorWidth - 4}px`;
+  }
+  applyColumnWidths();
+  columnResizers.forEach(handle => handle.addEventListener('pointerdown', e => {
+    const kind = handle.dataset.editorColumnResizer;
+    const managerWidth = Number(editorColumns.manager?.dataset.columnWidth) || 224;
+    const layersWidth = Number(editorColumns.layers?.dataset.columnWidth) || 304;
+    const inspectorWidth = Number(editorColumns.inspector?.dataset.columnWidth) || 560;
+    columnResize = { kind, pointerId: e.pointerId, startX: e.clientX, managerWidth, layersWidth, inspectorWidth };
+    handle.setPointerCapture?.(e.pointerId);
+    e.preventDefault(); e.stopPropagation();
+  }));
+  // Delegated capture path keeps column dragging reliable when a browser
+  // retargets events from the scrollable column edge.
+  editorEl.addEventListener('pointerdown', e => {
+    const handle = e.target.closest?.('[data-editor-column-resizer]');
+    if (!handle || columnResize) return;
+    const managerWidth = Number(editorColumns.manager?.dataset.columnWidth) || 224;
+    const layersWidth = Number(editorColumns.layers?.dataset.columnWidth) || 304;
+    const inspectorWidth = Number(editorColumns.inspector?.dataset.columnWidth) || 560;
+    columnResize = { kind: handle.dataset.editorColumnResizer, pointerId: e.pointerId, startX: e.clientX, managerWidth, layersWidth, inspectorWidth };
+    handle.setPointerCapture?.(e.pointerId);
+    e.preventDefault(); e.stopPropagation();
+  }, true);
+  columnResizers.forEach(handle => handle.addEventListener('mousedown', e => {
+    if (columnResize) return;
+    const kind = handle.dataset.editorColumnResizer;
+    const managerWidth = Number(editorColumns.manager?.dataset.columnWidth) || 224;
+    const layersWidth = Number(editorColumns.layers?.dataset.columnWidth) || 304;
+    const inspectorWidth = Number(editorColumns.inspector?.dataset.columnWidth) || 560;
+    columnResize = { kind, pointerId: null, startX: e.clientX, managerWidth, layersWidth, inspectorWidth };
+    e.preventDefault(); e.stopPropagation();
+  }));
+  columnResizers.forEach(handle => {
+    handle.addEventListener('pointerup', finishColumnResize);
+    handle.addEventListener('pointercancel', finishColumnResize);
+    handle.addEventListener('lostpointercapture', finishColumnResize);
+  });
 
   function validModuleWidth(value) {
     const width = Number(value);
@@ -1891,6 +2086,10 @@
       const legacyUi = JSON.parse(localStorage.getItem(LEGACY_EDITOR_UI_KEY) || '{}');
       moduleWidthMemory = migrateModuleWidths(ui, legacyUi);
       applyModuleWidths(moduleWidthMemory);
+      if (Number.isFinite(ui.managerColumnWidth) && editorColumns.manager) editorColumns.manager.dataset.columnWidth = String(clamp(ui.managerColumnWidth, 190, 360));
+      if (Number.isFinite(ui.layersColumnWidth) && editorColumns.layers) editorColumns.layers.dataset.columnWidth = String(clamp(ui.layersColumnWidth, 240, 460));
+      if (Number.isFinite(ui.inspectorColumnWidth) && editorColumns.inspector) editorColumns.inspector.dataset.columnWidth = String(clamp(ui.inspectorColumnWidth, 320, 760));
+      applyColumnWidths();
       if (Number.isFinite(ui.width) && Number.isFinite(ui.height)) {
         editorExpandedSize = {
           width: clamp(ui.width, 360, Math.max(360, innerWidth - 16)),
@@ -1914,7 +2113,7 @@
     const collapsed = editorEl.classList.contains('is-collapsed');
     if (!collapsed) editorExpandedSize = { width: rect.width, height: rect.height };
     const size = editorExpandedSize || { width: Math.max(360, rect.width), height: Math.max(180, rect.height) };
-    try { localStorage.setItem(EDITOR_UI_KEY, JSON.stringify({ x: rect.left, y: rect.top, width: size.width, height: size.height, collapsed, sectionWidths: currentModuleWidths() })); } catch (_) {}
+    try { localStorage.setItem(EDITOR_UI_KEY, JSON.stringify({ x: rect.left, y: rect.top, width: size.width, height: size.height, collapsed, sectionWidths: currentModuleWidths(), managerColumnWidth: Number(editorColumns.manager?.dataset.columnWidth) || 224, layersColumnWidth: Number(editorColumns.layers?.dataset.columnWidth) || 304, inspectorColumnWidth: Number(editorColumns.inspector?.dataset.columnWidth) || 560 })); } catch (_) {}
   }
   function startEditorDrag(e) {
     const borderDrag = Boolean(e.target.matches?.('[data-editor-drag-border]'));
@@ -1946,6 +2145,20 @@
     });
   });
   window.addEventListener('pointermove', e => {
+    if (columnResize) {
+      if (columnResize.kind === 'layers') {
+        const managerWidth = clamp(columnResize.managerWidth + e.clientX - columnResize.startX, 190, 360);
+        if (editorColumns.manager) editorColumns.manager.dataset.columnWidth = String(Math.round(managerWidth));
+      } else if (columnResize.kind === 'inspector-width') {
+        const inspectorWidth = clamp(columnResize.inspectorWidth + e.clientX - columnResize.startX, 320, 760);
+        if (editorColumns.inspector) editorColumns.inspector.dataset.columnWidth = String(Math.round(inspectorWidth));
+      } else {
+        const layersWidth = clamp(columnResize.layersWidth + e.clientX - columnResize.startX, 240, 460);
+        if (editorColumns.layers) editorColumns.layers.dataset.columnWidth = String(Math.round(layersWidth));
+      }
+      applyColumnWidths();
+      return;
+    }
     if (moduleResize) {
       const width = clamp(moduleResize.width + e.clientX - moduleResize.startX, 170, 720);
       moduleResize.module.style.width = `${width}px`;
@@ -1964,18 +2177,37 @@
     if (!editorDrag) return;
     const w = editorEl.offsetWidth;
     const h = editorEl.offsetHeight;
-    const x = clamp(e.clientX - editorDrag.dx, 0, Math.max(0, innerWidth - Math.min(w, innerWidth)));
-    const y = clamp(e.clientY - editorDrag.dy, 0, Math.max(0, innerHeight - Math.min(h, innerHeight)));
+    const x = clamp(e.clientX - editorDrag.dx, -w + 80, innerWidth - 80);
+    const y = clamp(e.clientY - editorDrag.dy, -h + 40, innerHeight - 40);
     editorEl.style.left = `${x}px`;
     editorEl.style.top = `${y}px`;
   }, { passive: true });
   window.addEventListener('pointerup', () => {
-    if (!editorDrag && !editorResize && !moduleResize) return;
+    if (!editorDrag && !editorResize && !moduleResize && !columnResize) return;
     editorDrag = null;
     editorResize = null;
+    finishColumnResize();
     moduleResize = null;
     saveEditorUi();
   }, { passive: true });
+  window.addEventListener('mousemove', e => {
+    if (!columnResize) return;
+    if (columnResize.kind === 'layers') {
+      const managerWidth = clamp(columnResize.managerWidth + e.clientX - columnResize.startX, 190, 360);
+      if (editorColumns.manager) editorColumns.manager.dataset.columnWidth = String(Math.round(managerWidth));
+    } else if (columnResize.kind === 'inspector-width') {
+      const inspectorWidth = clamp(columnResize.inspectorWidth + e.clientX - columnResize.startX, 320, 760);
+      if (editorColumns.inspector) editorColumns.inspector.dataset.columnWidth = String(Math.round(inspectorWidth));
+    } else {
+      const layersWidth = clamp(columnResize.layersWidth + e.clientX - columnResize.startX, 240, 460);
+      if (editorColumns.layers) editorColumns.layers.dataset.columnWidth = String(Math.round(layersWidth));
+    }
+    applyColumnWidths();
+  }, { passive: true });
+  window.addEventListener('mouseup', () => {
+    finishColumnResize();
+  }, { passive: true });
+  window.addEventListener('blur', finishColumnResize);
   collapseBtn.addEventListener('click', e => {
     e.stopPropagation();
     const wasCollapsed = editorEl.classList.contains('is-collapsed');
@@ -2000,8 +2232,11 @@
     cancelPendingEditorPersistence();
     saveStatus.textContent = tr('previewing');
     try {
-      await S.flushLayout();
-      const view = S.captureViewportLocation?.() || { scene: activeScene, rel: 0 };
+      try { await S.flushLayout(); } catch (_) {
+        // Vite's static preview has no write API; the runtime already holds
+        // the current draft in memory and can still open preview mode.
+      }
+      const view = { scene: activeScene, rel: 0, offsetPx: 0 };
       S.switchViewMode?.('preview', view);
     } catch (err) {
       saveStatus.textContent = tr('previewFailed');
@@ -2022,6 +2257,9 @@
 
   document.getElementById('saveLayout').addEventListener('click', async () => {
     cancelPendingEditorPersistence();
+    const saveButton = buttonById('saveLayout');
+    const cancelButton = buttonById('discardLayout');
+    saveButton.disabled = true; cancelButton.disabled = true;
     saveStatus.textContent = tr('saving');
     try {
       await S.commitEditSession();
@@ -2031,11 +2269,15 @@
     } catch (err) {
       saveStatus.textContent = tr('saveFailed');
       alert(tr('errSave', { error: err.message }));
+      saveButton.disabled = false; cancelButton.disabled = false;
     }
   });
 
   document.getElementById('discardLayout').addEventListener('click', async () => {
     cancelPendingEditorPersistence();
+    const saveButton = buttonById('saveLayout');
+    const cancelButton = buttonById('discardLayout');
+    saveButton.disabled = true; cancelButton.disabled = true;
     saveStatus.textContent = tr('discarding');
     try {
       await S.discardEditSession();
@@ -2045,6 +2287,7 @@
     } catch (err) {
       saveStatus.textContent = tr('discardFailed');
       alert(err.message || tr('discardFailed'));
+      saveButton.disabled = false; cancelButton.disabled = false;
     }
   });
 
@@ -2063,8 +2306,9 @@
   });
 
   document.getElementById('importLayout').addEventListener('change', async e => {
-    const file = e.target.files?.[0]; if (!file) return;
+    const file = firstFileFromEvent(e); if (!file) return;
     try {
+      /** @type {ProjectExportPayload} */
       const data = JSON.parse(await file.text());
       await S.importProject(data);
       syncBg();
@@ -2072,7 +2316,7 @@
       setSelection(fallback ? [fallback] : [], fallback);
       autosave('Project imported');
     } catch (err) { alert(tr('errImport', { error: err.message })); }
-    e.target.value = '';
+    if (e.target instanceof HTMLInputElement) e.target.value = '';
   });
 
   document.getElementById('resetLayout').addEventListener('click', () => {
@@ -2089,9 +2333,13 @@
     if(items.length===1){const s=items[0][1],text=s.localized?(s.texts?.[currentLang()]??s.texts?.en??s.text??''):(s.text??'');navigator.clipboard?.writeText?.(String(text)).catch(()=>{})}
     return true;
   }
+  /** @param {import('../src/types').TextLayer} source @returns {import('../src/types').TextLayer} */
+  function cloneTextLayer(source) {
+    return /** @type {import('../src/types').TextLayer} */ (JSON.parse(JSON.stringify(source)));
+  }
   function pasteTextLayers(){
     if(!layerClipboard?.length)return false;const created=[];let top=Math.max(0,...sceneLayers(activeScene).map(id=>Number(stateFor(id)?.z)||0));
-    for(const item of layerClipboard){const s=JSON.parse(JSON.stringify(item.state));if(s.type!=='text')continue;const id=`text-${Date.now().toString(36)}-${Math.random().toString(36).slice(2,7)}`;s.core=false;s.scene=activeScene;s.name=`${s.name||'Text'} copy`;s.x=Number(s.x||0)+24;s.y=Number(s.y||0)+24;s.z=++top;S.layout.layers[id]=s;created.push(id)}
+    for(const item of layerClipboard){const s=cloneTextLayer(item.state);const id=`text-${Date.now().toString(36)}-${Math.random().toString(36).slice(2,7)}`;s.core=false;s.scene=activeScene;s.name=`${s.name||'Text'} copy`;s.x=Number(s.x||0)+24;s.y=Number(s.y||0)+24;s.z=++top;S.layout.layers[id]=s;created.push(id)}
     if(!created.length)return false;S.applyLayout();setSelection(created,created[0]);autosave('Text added');return true;
   }
 
@@ -2128,6 +2376,7 @@
   window.addEventListener('ui-language-change', applyStaticTranslations);
 
   applyStaticTranslations();
+  setTimeout(syncSceneGroupFilterUi, 0);
   detectSceneInView();
   syncSiteTitleControls(); syncBg(); syncGuides(); syncXray(); syncTransition(); syncSceneShades(); syncSceneVisibilityUi(); renderLayerList();
   if (primaryId) setSelection([primaryId], primaryId);

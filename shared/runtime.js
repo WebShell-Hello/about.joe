@@ -2,6 +2,11 @@
 (() => {
   'use strict';
 
+  /** @typedef {import('../src/types').Layout} Layout */
+  /** @typedef {import('../src/types').LayoutCandidate} LayoutCandidate */
+  /** @typedef {import('../src/types').SceneId} SceneId */
+  /** @typedef {import('../src/types').Layer} Layer */
+
   const DESIGN_W = 1402;
   const DESIGN_H = 1122;
   const CHAR_W = 941;
@@ -41,6 +46,7 @@
   const viewMode = safeSessionGet(VIEW_MODE_KEY) || 'normal';
   const editMode = viewMode === 'edit';
   const previewMode = viewMode === 'preview';
+  /** @type {Layout|null} */
   let layout = null;
   if (editMode) document.body.classList.add('is-editing');
   else if (previewMode) document.body.classList.add('is-previewing');
@@ -63,7 +69,7 @@
 
   function syncUiLanguage() {
     document.documentElement.lang = uiLanguage === 'zh' ? 'zh-CN' : 'en';
-    document.querySelectorAll('[data-ui-lang]').forEach(button => {
+    document.querySelectorAll('[data-ui-lang]').forEach(/** @param {HTMLElement} button */ (button) => {
       const active = button.dataset.uiLang === uiLanguage;
       button.classList.toggle('is-active', active);
       button.setAttribute('aria-pressed', active ? 'true' : 'false');
@@ -74,15 +80,15 @@
       button.setAttribute('aria-label', nextLanguage === 'zh' ? '切换到中文' : 'Switch to English');
       button.setAttribute('title', nextLanguage === 'zh' ? '切换到中文' : 'Switch to English');
     });
-    const entry = document.getElementById('adminEntry');
+    const entry = /** @type {HTMLAnchorElement|null} */ (document.getElementById('adminEntry'));
     if (entry) {
       entry.textContent = uiLanguage === 'zh' ? '编辑模式' : 'EDIT MODE';
       entry.setAttribute('aria-label', uiLanguage === 'zh' ? '打开场景编辑器' : 'Open Scene editor');
       entry.href = './';
     }
-    const preview = document.getElementById('previewLink');
+    const preview = /** @type {HTMLAnchorElement|null} */ (document.getElementById('previewLink'));
     if (preview) preview.href = './';
-    const returnEditor = document.getElementById('previewReturnEditor');
+    const returnEditor = /** @type {HTMLAnchorElement|null} */ (document.getElementById('previewReturnEditor'));
     if (returnEditor) {
       returnEditor.href = './';
       returnEditor.textContent = uiLanguage === 'zh' ? '返回编辑器' : 'Return to editor';
@@ -93,7 +99,7 @@
     const navLabels = uiLanguage === 'zh'
       ? { 1:'首页', 2:'关于', 3:'经历', 4:'技能', 5:'项目', 6:'博客', 7:'联系' }
       : { 1:'Home', 2:'About', 3:'Experience', 4:'Skills', 5:'Projects', 6:'Blog', 7:'Contact' };
-    document.querySelectorAll('[data-nav-scene]').forEach(link => {
+    document.querySelectorAll('[data-nav-scene]').forEach(/** @param {HTMLElement} link */ (link) => {
       const label = navLabels[Number(link.dataset.navScene)];
       if (label && link.id !== 'globalSiteBrand') link.textContent = label;
     });
@@ -111,10 +117,10 @@
     window.dispatchEvent(new CustomEvent('ui-language-change', { detail: { language: uiLanguage } }));
   }
 
-  document.querySelectorAll('[data-ui-lang]').forEach(button => {
+  document.querySelectorAll('[data-ui-lang]').forEach(/** @param {HTMLElement} button */ (button) => {
     button.addEventListener('click', () => setUiLanguage(button.dataset.uiLang));
   });
-  document.querySelectorAll('[data-ui-language-toggle]').forEach(button => {
+  document.querySelectorAll('[data-ui-language-toggle]').forEach(/** @param {HTMLElement} button */ (button) => {
     button.addEventListener('click', () => setUiLanguage(uiLanguage === 'zh' ? 'en' : 'zh'));
   });
   syncUiLanguage();
@@ -128,7 +134,8 @@
   const SCENE_IDS=(sceneRegistry?.manifest||[]).map(entry=>Number(entry.id)).filter(Number.isFinite).sort((a,b)=>a-b);
   const MIN_SCENE_ID=SCENE_IDS.length?Math.min(...SCENE_IDS):0;
   const MAX_SCENE_ID=SCENE_IDS.length?Math.max(...SCENE_IDS):9;
-  const validSceneId=(value,fallback=MIN_SCENE_ID)=>{const n=Number(value);return SCENE_IDS.includes(n)?n:(SCENE_IDS.includes(Number(fallback))?Number(fallback):(SCENE_IDS[0]??0))};
+  /** @returns {SceneId} */
+  const validSceneId=(value,fallback=MIN_SCENE_ID)=>{const n=Number(value);return /** @type {SceneId} */ (SCENE_IDS.includes(n)?n:(SCENE_IDS.includes(Number(fallback))?Number(fallback):(SCENE_IDS[0]??1)));};
   function captureViewportLocation() {
     const center = window.innerHeight * 0.5;
     const cinematicStory=window.__joeSimpleVideoStory;
@@ -190,12 +197,12 @@
     let hold=rootEl.querySelector(':scope > .scene-runtime-hold');
     if(!hold){
       hold=document.createElement('div');hold.className='scene-runtime-hold';
-      const nodes=[...rootEl.childNodes];nodes.forEach(node=>hold.appendChild(node));rootEl.appendChild(hold);
+      const nodes=Array.from(rootEl.childNodes);nodes.forEach(node=>hold.appendChild(node));rootEl.appendChild(hold);
     }
     const overflow=getComputedStyle(rootEl).overflow;
     if(!rootEl.dataset.sceneOriginalOverflow)rootEl.dataset.sceneOriginalOverflow=overflow||'visible';
     if(overflow&&overflow!=='visible')rootEl.style.overflow='visible';
-    hold.style.overflow=overflow&&overflow!=='visible'?overflow:'visible';
+    /** @type {HTMLElement} */ (hold).style.overflow=overflow&&overflow!=='visible'?overflow:'visible';
     sceneHoldEls[id]=hold;return hold;
   }
   for(const scene of SCENE_IDS)ensureSceneHoldElement(scene);
@@ -215,12 +222,12 @@
   const transitionShade = sceneTransitionShadeEls[1] || document.getElementById('sceneTransitionShade');
   const star = document.querySelector('.star-button');
   const dynamicAnchor = document.getElementById(scene1Module?.dynamicAnchorId || 'dynamicLayerAnchor');
-  const alphaCanvas = document.getElementById('alphaCanvas');
+  const alphaCanvas = /** @type {HTMLCanvasElement} */ (document.getElementById('alphaCanvas'));
   const alphaCtx = alphaCanvas.getContext('2d', { willReadFrequently: true });
 
   const elMap = {};
   const coreDomHomes={};
-  document.querySelectorAll('[data-layer-id]').forEach(el => {
+  document.querySelectorAll('[data-layer-id]').forEach(/** @param {HTMLElement} el */ (el) => {
     elMap[el.dataset.layerId] = el;
     let homeScene=MIN_SCENE_ID;for(const module of(sceneRegistry?.all()||[])){const r=module?.rootId?document.getElementById(module.rootId):null;if(r?.contains(el)){homeScene=module.id;break}}
     coreDomHomes[el.dataset.layerId]={parent:el.parentNode,next:el.nextSibling,scene:homeScene};
@@ -274,6 +281,7 @@
       perspectiveOpacity: 0.50,
       bonesOpacity: 0.78,
       activationDistance: 92
+      ,expansionDurationMs: 1050
     },
     digitalRain: {
       density: 1.60,
@@ -455,6 +463,11 @@
 
   function normaliseLayer(id, candidate, base = null) {
     const type = candidate?.type || base?.type || 'image';
+    const inferredDisplayGroup = (() => {
+      const role = String(candidate?.role ?? base?.role ?? '').toLowerCase();
+      const name = String(candidate?.name ?? base?.name ?? id).toLowerCase();
+      return role.includes('perspective') || role.includes('xray') || name.includes('perspective') || Boolean(candidate?.xrayLayer ?? base?.xrayLayer) ? 'digital' : 'reality';
+    })();
     const common = {
       type,
       scene: validSceneId(candidate?.scene ?? base?.scene ?? MIN_SCENE_ID, MIN_SCENE_ID),
@@ -471,6 +484,7 @@
       locked: Boolean(candidate?.locked ?? base?.locked ?? false),
       flow: Boolean(candidate?.flow ?? base?.flow ?? false),
       localized: Boolean(candidate?.localized ?? base?.localized ?? (candidate?.text && typeof candidate.text === 'object') ?? false)
+      ,displayGroup: String(candidate?.displayGroup ?? base?.displayGroup ?? inferredDisplayGroup) || inferredDisplayGroup
     };
     if (type === 'text') {
       const fallbackStyle = base?.textStyle || (common.flow
@@ -498,6 +512,11 @@
         target: link.target === '_blank' ? '_blank' : '_self',
         offset: Math.max(-1000, Math.min(1000, Number(link.offset || 0)))
       } : null;
+      const timing = candidate?.displayTiming ?? base?.displayTiming ?? {};
+      common.displayTiming = {
+        enterDelayMs: Math.max(0, Math.min(60000, Number(timing?.enterDelayMs) || 0)),
+        visibleForMs: Math.max(0, Math.min(600000, Number(timing?.visibleForMs) || 0))
+      };
     }
     if (type === 'image') {
       common.src = migrateBuiltInAssetPath(String(candidate?.src ?? base?.src ?? ''));
@@ -555,6 +574,7 @@
     };
   }
 
+  /** @param {LayoutCandidate|unknown} candidate @returns {Layout} */
   function normaliseLayout(candidate) {
     candidate = migrateInsertedScene2Layout(candidate);
     candidate = migrateSceneSwapAndSceneZero(candidate);
@@ -564,8 +584,10 @@
     candidate = migrateV40Crossfades(candidate);
     const out = cloneDefault();
     if (!candidate || typeof candidate !== 'object') { compactLayerDepths(out); return out; }
+    /** @type {LayoutCandidate} */
+    const source = /** @type {LayoutCandidate} */ (candidate);
 
-    const sourceLayers = candidate.layers && typeof candidate.layers === 'object' ? candidate.layers : {};
+    const sourceLayers = source.layers && typeof source.layers === 'object' ? source.layers : {};
 
     // Migration from v5: the body/x-ray were one Character group. Keep the
     // user's carefully adjusted transform as the starting transform for all
@@ -574,7 +596,7 @@
       const legacy = sourceLayers.character;
       for (const [id, zOffset] of [['characterMain', 0], ['characterPerspective', 2], ['characterBones', 3]]) {
         const base = out.layers[id];
-        out.layers[id] = normaliseLayer(id, { ...base, ...legacy, type: 'image', role: base.role, src: base.src, width: 941, height: 1672, z: Number(legacy.z ?? base.z) + zOffset }, base);
+        out.layers[id] = normaliseLayer(id, { ...base, ...legacy, type: 'image', role: base.role, src: base.src, width: 941, height: 1672, z: Number(legacy.z ?? base.z) + Number(zOffset) }, base);
       }
     }
 
@@ -588,33 +610,34 @@
       out.layers[id] = normaliseLayer(id, layer, base);
     }
 
-    const deletedLayers = Array.isArray(candidate.deletedLayers)
-      ? [...new Set(candidate.deletedLayers.map(String))].filter(id => Boolean(DEFAULT_LAYOUT.layers[id]))
+    const deletedLayers = Array.isArray(source.deletedLayers)
+      ? [...new Set(source.deletedLayers.map(String))].filter(id => Boolean(DEFAULT_LAYOUT.layers[id]))
       : [];
     out.deletedLayers = deletedLayers;
     deletedLayers.forEach(id => { delete out.layers[id]; });
 
-    if (candidate.siteTitle && typeof candidate.siteTitle === 'object') {
+    if (source.siteTitle && typeof source.siteTitle === 'object') {
       out.siteTitle = {
-        en: String(candidate.siteTitle.en ?? out.siteTitle.en ?? "Joe's Portfolio"),
-        zh: String(candidate.siteTitle.zh ?? out.siteTitle.zh ?? 'Joe 的作品集')
+        en: String(source.siteTitle.en ?? out.siteTitle.en ?? "Joe's Portfolio"),
+        zh: String(source.siteTitle.zh ?? out.siteTitle.zh ?? 'Joe 的作品集')
       };
     }
-    const legacyBackground=candidate.background&&typeof candidate.background==='object'?candidate.background:out.background;
-    out.sceneBackgrounds=normaliseSceneBackgrounds(candidate.sceneBackgrounds,legacyBackground);out.background={...out.sceneBackgrounds[1]};out.sceneVisibility=normaliseSceneVisibility(candidate.sceneVisibility);
+    const legacyBackground=source.background&&typeof source.background==='object'?source.background:out.background;
+    out.sceneBackgrounds=normaliseSceneBackgrounds(source.sceneBackgrounds,legacyBackground);out.background={...out.sceneBackgrounds[1]};out.sceneVisibility=normaliseSceneVisibility(source.sceneVisibility);
     if (out.layers.scene1Background) {
       out.sceneBackgrounds[1] = {x:50,y:50,zoom:1,src:'',fileName:'',sourceWidth:null,sourceHeight:null};
       out.background = {...out.sceneBackgrounds[1]};
       out.backgroundPerspectiveBinding = null;
     }
-    if (candidate.xray) Object.assign(out.xray, candidate.xray);
-    const rainCandidate = candidate.digitalRain && typeof candidate.digitalRain === 'object' ? candidate.digitalRain : {};
+    if (source.xray) Object.assign(out.xray, source.xray);
+    out.xray.expansionDurationMs = Math.max(200, Math.min(5000, Number(out.xray.expansionDurationMs) || 1050));
+    const rainCandidate = source.digitalRain && typeof source.digitalRain === 'object' ? source.digitalRain : {};
     out.digitalRain = {
       density: Math.max(0.5, Math.min(2.5, Number(rainCandidate.density ?? out.digitalRain?.density ?? 1.60) || 1.60)),
       digitSize: Math.max(0.55, Math.min(1.8, Number(rainCandidate.digitSize ?? out.digitalRain?.digitSize ?? 1.10) || 1.10))
     };
-    const perspectiveBinding = out.layers.scene1Background ? null : (candidate.backgroundPerspectiveBinding && typeof candidate.backgroundPerspectiveBinding === 'object'
-      ? candidate.backgroundPerspectiveBinding
+    const perspectiveBinding = out.layers.scene1Background ? null : (source.backgroundPerspectiveBinding && typeof source.backgroundPerspectiveBinding === 'object'
+      ? source.backgroundPerspectiveBinding
       : out.backgroundPerspectiveBinding);
     if (perspectiveBinding && perspectiveBinding.enabled !== false) {
       out.backgroundPerspectiveBinding = {
@@ -629,24 +652,24 @@
     // The duplicated normal-body lens caused cross-browser ghost copies.
     // Keep the public X-ray as a true cut-away: normal body hole + perspective + bones.
     out.xray.mainOpacity = 0;
-    if (candidate.transition) Object.assign(out.transition, candidate.transition);
-    out.sceneTransitions = normaliseSceneTransitions(candidate.sceneTransitions, out.transition);
+    if (source.transition) Object.assign(out.transition, source.transition);
+    out.sceneTransitions = normaliseSceneTransitions(source.sceneTransitions, out.transition);
     out.transition = { ...out.sceneTransitions[1] };
-    out.cinematicSettings = normaliseCinematicSettings(candidate.cinematicSettings);
-    out.sceneShades = normaliseSceneShades(candidate.sceneShades, Number(out.sceneTransitions[1]?.bottomShade ?? 0.88));
+    out.cinematicSettings = normaliseCinematicSettings(source.cinematicSettings);
+    out.sceneShades = normaliseSceneShades(source.sceneShades, Number(out.sceneTransitions[1]?.bottomShade ?? 0.88));
 
-    if (candidate.bindings && typeof candidate.bindings === 'object') {
-      const bindings = JSON.parse(JSON.stringify(candidate.bindings));
+    if (source.bindings && typeof source.bindings === 'object') {
+      const bindings = JSON.parse(JSON.stringify(source.bindings));
       for (const binding of Object.values(bindings)) {
         if (!Array.isArray(binding?.members) || !binding.members.includes('character')) continue;
         binding.members = binding.members.flatMap(id => id === 'character' ? ['characterMain', 'characterPerspective', 'characterBones'] : [id]);
       }
       const migratedBindings = normaliseBindings(bindings, out.layers);
-      out.bindings = Object.keys(migratedBindings).length || Number(candidate.version || 0) >= 6
+      out.bindings = Object.keys(migratedBindings).length || Number(source.version || 0) >= 6
         ? migratedBindings
         : cloneDefault().bindings;
     }
-    if (Number(candidate.version || 0) < 23) coalesceTextLayers(out);
+    if (Number(source.version || 0) < 23) coalesceTextLayers(out);
     out.version = 35;
     compactLayerDepths(out);
     return out;
@@ -675,6 +698,7 @@
     return copy;
   }
 
+  /** @returns {Layout} */
   function loadLayout() {
     try {
       const raw = localStorage.getItem(STORAGE_KEY);
@@ -803,7 +827,21 @@
       }
       const layoutUrl = API_LAYOUT + ((editMode || previewMode) ? '?draft=1&t=' : '?t=') + Date.now();
       const res = await fetch(layoutUrl, { cache: 'no-store' });
-      if (!res.ok) return;
+      if (!res.ok) {
+        // Production is a static deployment without server.py. Fall back to
+        // the committed layout file so the showcase matches the saved editor
+        // state instead of silently rendering only built-in defaults.
+        if (!editMode && !previewMode) {
+          const staticRes = await fetch('data/layout01.json', { cache: 'no-cache' });
+          if (staticRes.ok) {
+            const staticLayout = await staticRes.json();
+            layout = normaliseLayout(staticLayout);
+            try { localStorage.setItem(STORAGE_KEY, JSON.stringify(compactLayoutForStorage(layout))); } catch (_) {}
+            applyLayout();
+          }
+        }
+        return;
+      }
       const payload = await res.json();
       if (payload?.layout) {
         layout = normaliseLayout(payload.layout);
@@ -825,14 +863,14 @@
 
   function ensureSceneBackgroundElement(scene){if(Number(scene)===1)return backgroundImage;if(sceneBackgroundEls[scene]?.isConnected)return sceneBackgroundEls[scene];const module=sceneRegistry?.get(Number(scene)),sceneRoot=module?.rootId?document.getElementById(module.rootId):null;if(!sceneRoot)return null;const host=ensureSceneHoldElement(scene)||sceneRoot;let wrapper=host.querySelector(':scope > .scene-managed-background');if(!wrapper){wrapper=document.createElement('div');wrapper.className='scene-managed-background';wrapper.setAttribute('aria-hidden','true');const img=document.createElement('img');img.alt='';img.draggable=false;wrapper.appendChild(img);host.insertBefore(wrapper,host.firstChild)}const img=wrapper.querySelector('img');sceneBackgroundEls[scene]=img;return img}
   function backgroundForScene(scene){const id=validSceneId(scene,MIN_SCENE_ID);if(!layout.sceneBackgrounds||typeof layout.sceneBackgrounds!=='object')layout.sceneBackgrounds=normaliseSceneBackgrounds(null,layout.background);if(!layout.sceneBackgrounds[id])layout.sceneBackgrounds[id]=normaliseBackgroundState(null,cloneDefault().sceneBackgrounds?.[id]||{});return layout.sceneBackgrounds[id]}
-  function applyBackground(){for(const scene of SCENE_IDS){const bg=backgroundForScene(scene),img=ensureSceneBackgroundElement(scene);if(!img)continue;const isSceneOne=Number(scene)===1,wrapper=isSceneOne?img.closest('.viewport-background'):img.closest('.scene-managed-background'),src=String(bg.src||'');if(src&&img.getAttribute('src')!==src)img.setAttribute('src',src);if(!src)img.removeAttribute('src');img.style.display=src?'':'none';if(wrapper){wrapper.style.display=isSceneOne?'':(src?'':'none');wrapper.style.setProperty('--scene-bg-x',`${bg.x}%`);wrapper.style.setProperty('--scene-bg-y',`${bg.y}%`);wrapper.style.setProperty('--scene-bg-zoom',String(bg.zoom))}if(isSceneOne){root.style.setProperty('--bg-x',`${bg.x}%`);root.style.setProperty('--bg-y',`${bg.y}%`);root.style.setProperty('--bg-zoom',String(bg.zoom));layout.background={...bg}}}}
+  function applyBackground(){for(const scene of SCENE_IDS){const bg=backgroundForScene(scene),img=ensureSceneBackgroundElement(scene);if(!img)continue;const isSceneOne=Number(scene)===1,wrapper=isSceneOne?img.closest('.viewport-background'):img.closest('.scene-managed-background'),src=isSceneOne?String(bg.src||''):'';if(src&&img.getAttribute('src')!==src)img.setAttribute('src',src);if(!src)img.removeAttribute('src');img.style.display=src?'':'none';if(wrapper){wrapper.style.display=src?'':'none';wrapper.style.setProperty('--scene-bg-x',`${bg.x}%`);wrapper.style.setProperty('--scene-bg-y',`${bg.y}%`);wrapper.style.setProperty('--scene-bg-zoom',String(bg.zoom))}if(isSceneOne){root.style.setProperty('--bg-x',`${bg.x}%`);root.style.setProperty('--bg-y',`${bg.y}%`);root.style.setProperty('--bg-zoom',String(bg.zoom));layout.background={...bg}}}}
 
   function sceneOneBackgroundGeometry() {
     if (!sceneOneBackgroundSurface) return null;
     const rect = sceneOneBackgroundSurface.getBoundingClientRect();
     const bg = backgroundForScene(1);
-    const sourceWidth = Math.max(1, Number(bg?.sourceWidth) || Number(backgroundImage?.naturalWidth) || 1536);
-    const sourceHeight = Math.max(1, Number(bg?.sourceHeight) || Number(backgroundImage?.naturalHeight) || 864);
+    const sourceWidth = Math.max(1, Number(bg?.sourceWidth) || Number(/** @type {HTMLImageElement} */ (backgroundImage)?.naturalWidth) || 1536);
+    const sourceHeight = Math.max(1, Number(bg?.sourceHeight) || Number(/** @type {HTMLImageElement} */ (backgroundImage)?.naturalHeight) || 864);
     const width = Math.max(1, Number(rect.width) || window.innerWidth || 1);
     const height = Math.max(1, Number(rect.height) || window.innerHeight || 1);
     const coverScale = Math.max(width / sourceWidth, height / sourceHeight);
@@ -1144,13 +1182,13 @@
   function syncDynamicLayers() {
     const wanted = new Set(Object.entries(layout.layers).filter(([, s]) => !s.core).map(([id]) => id));
     (sceneRegistry?.all() || []).map(module => stageForScene(module.id)).filter(Boolean).forEach(sceneStage => {
-      sceneStage.querySelectorAll('.dynamic-layer').forEach(el => {
+      sceneStage.querySelectorAll('.dynamic-layer').forEach(/** @param {HTMLElement} el */ (el) => {
         if (!wanted.has(el.dataset.layerId)) el.remove();
       });
     });
     for (const [id, s] of Object.entries(layout.layers)) {
       if (s.core) continue;
-      let el = document.querySelector(`[data-layer-id="${CSS.escape(id)}"]`);
+      let el = /** @type {HTMLElement|null} */ (document.querySelector(`[data-layer-id="${CSS.escape(id)}"]`));
       const targetStage = stageForScene(s.scene);
       if (el && targetStage && !targetStage.contains(el)) { el.remove(); el = null; }
       if (!el) el = createDynamicElement(id, s);
@@ -1159,7 +1197,7 @@
       if (s.type === 'image') {
         el.style.width = `${s.width || 300}px`;
         el.style.height = `${s.height || 300}px`;
-        if (s.src && el.getAttribute('src') !== s.src) el.src = s.src;
+        if (s.src && el.getAttribute('src') !== s.src) /** @type {HTMLImageElement} */ (el).src = s.src;
         el.classList.toggle('xray-layer', Boolean(s.xrayLayer));
         el.classList.toggle('custom-xray-layer', Boolean(s.xrayLayer));
       }
@@ -1257,16 +1295,27 @@
     const leave=Math.max(0,Math.min(1,exit*2));
     return smoothstep(entry)*(1-smoothstep(leave));
   }
+  let textSceneEnteredAt = performance.now();
+  function textTimingMultiplier(s) {
+    if (!s?.displayTiming || !Number(s.displayTiming.enterDelayMs) && !Number(s.displayTiming.visibleForMs)) return 1;
+    const scene = validSceneId(s.scene, MIN_SCENE_ID);
+    if (Number(window.__joeSimpleVideoStory?.getActiveDomainId?.()) !== scene) return 0;
+    const elapsed = Math.max(0, performance.now() - textSceneEnteredAt);
+    const enter = Math.max(0, Number(s.displayTiming.enterDelayMs) || 0);
+    const duration = Math.max(0, Number(s.displayTiming.visibleForMs) || 0);
+    return elapsed < enter || (duration > 0 && elapsed >= enter + duration) ? 0 : 1;
+  }
   function runtimeOpacity(id,s){
     if(editMode)return s.opacity;
+    const timingMultiplier = s.type === 'text' ? textTimingMultiplier(s) : 1;
     const scene=validSceneId(s.scene,MIN_SCENE_ID);
     const story=window.__joeSimpleVideoStory;
     if(story?.active&&typeof story.getLayerOpacityMultiplier==='function'&&[2,3,4,5].includes(Number(scene))){
-      return s.opacity*story.getLayerOpacityMultiplier(s);
+      return s.opacity*story.getLayerOpacityMultiplier(s)*timingMultiplier;
     }
-    if(s.type==='text'&&[2,3].includes(Number(scene)))return s.opacity*videoSceneTextVisibility(scene);
+    if(s.type==='text'&&[2,3].includes(Number(scene)))return s.opacity*videoSceneTextVisibility(scene)*timingMultiplier;
     const progress=smoothstep(s.type==='text'?firstSceneTextExitProgress(scene):sceneProgressFor(scene));
-    if(s.type==='text')return s.opacity*(1-progress);
+    if(s.type==='text')return s.opacity*(1-progress)*timingMultiplier;
     if(id==='scroll')return s.opacity*(1-progress);
     return s.opacity;
   }
@@ -1275,6 +1324,11 @@
     const rootEl=document.documentElement;
     if(rootEl.classList.contains('portfolio-text-entry-started'))return;
     rootEl.classList.add('portfolio-text-entry-running');
+    const activeScene = Number(window.__joeSimpleVideoStory?.getActiveDomainId?.()) || 1;
+    Object.values(layout.layers || {}).filter(layer => layer?.type === 'text' && Number(layer.scene) === activeScene)
+      .flatMap(layer => [Number(layer.displayTiming?.enterDelayMs) || 0, Number(layer.displayTiming?.visibleForMs) || 0])
+      .filter(delay => delay > 0)
+      .forEach(delay => window.setTimeout(() => applyLayout(), delay + 8));
     // Two frames guarantee the browser paints the initial 0-opacity state
     // before releasing it to the stored runtime opacity.
     requestAnimationFrame(()=>requestAnimationFrame(()=>{
@@ -1530,6 +1584,8 @@
       if (el.dataset.joeMaskMode) {
         el.style.webkitMaskImage = 'none';
         el.style.maskImage = 'none';
+        el.style.webkitMaskComposite = '';
+        el.style.maskComposite = '';
         delete el.dataset.joeMaskMode;
       }
       return;
@@ -1554,6 +1610,8 @@
 
     const mode = inverse ? 'inverse' : 'reveal';
     if (el.dataset.joeMaskMode !== mode) {
+      el.style.webkitMaskComposite = '';
+      el.style.maskComposite = '';
       const gradient = inverse
         ? 'radial-gradient(circle var(--joe-lens-edge) at var(--joe-lens-x) var(--joe-lens-y), transparent 0 var(--joe-lens-radius), rgba(0,0,0,0.18) var(--joe-lens-soft), #000 var(--joe-lens-edge))'
         : 'radial-gradient(circle var(--joe-lens-edge) at var(--joe-lens-x) var(--joe-lens-y), #000 0 var(--joe-lens-radius), rgba(0,0,0,0.82) var(--joe-lens-soft), transparent var(--joe-lens-edge))';
@@ -1564,11 +1622,51 @@
     }
   }
 
+  function applyMultiMask(el, inverse, points, active, radiusOverride = null, featherOverride = null) {
+    if (!el || !active || !points?.length) { applyMask(el, inverse, 0, 0, false); return; }
+    const radius = Math.max(1, Number(radiusOverride ?? layout.xray?.radius ?? 184));
+    const feather = Math.max(0, Number(featherOverride ?? layout.xray?.feather ?? 52));
+    const edge = radius + feather;
+    const gradients = points.slice(0, 3).map(point => {
+      const x = Number(point.x) || 0, y = Number(point.y) || 0;
+      return inverse
+        ? `radial-gradient(circle ${edge}px at ${x}px ${y}px, transparent 0 ${radius}px, rgba(0,0,0,.18) ${radius + feather * .35}px, #000 ${edge}px)`
+        : `radial-gradient(circle ${edge}px at ${x}px ${y}px, #000 0 ${radius}px, rgba(0,0,0,.82) ${radius + feather * .35}px, transparent ${edge}px)`;
+    });
+    el.style.webkitMaskImage = gradients.join(',');
+    el.style.maskImage = gradients.join(',');
+    el.style.webkitMaskComposite = inverse ? 'intersect' : 'add';
+    el.style.maskComposite = inverse ? 'intersect' : 'add';
+    el.dataset.joeMaskMode = inverse ? 'multi-inverse' : 'multi-reveal';
+  }
+
+  function applyDualMask(el, oldInverse, oldPoint, oldRadius, newInverse, newPoint, newRadius, feather) {
+    if (!el) return;
+    const make = (inverse, point, radius) => {
+      const edge = radius + feather;
+      return inverse
+        ? `radial-gradient(circle ${edge}px at ${point.x}px ${point.y}px, transparent 0 ${radius}px, rgba(0,0,0,.18) ${radius + feather * .35}px, #000 ${edge}px)`
+        : `radial-gradient(circle ${edge}px at ${point.x}px ${point.y}px, #000 0 ${radius}px, rgba(0,0,0,.82) ${radius + feather * .35}px, transparent ${edge}px)`;
+    };
+    // The two masks describe complementary halves of the transition. Reality
+    // uses a disjoint outside+inside union; digital uses an intersection so
+    // its expanding region remains an annulus instead of overlapping reality.
+    // The newborn circle must always grow from an empty region. Applying an
+    // inverse mask at radius 0 would make its entire outside visible and
+    // incorrectly cover the old scene from the first animation frame.
+    el.style.webkitMaskImage = `${make(oldInverse, oldPoint, oldRadius)}, ${make(newInverse, newPoint, newRadius)}`;
+    el.style.maskImage = `${make(oldInverse, oldPoint, oldRadius)}, ${make(newInverse, newPoint, newRadius)}`;
+    const composite = oldInverse === newInverse ? 'add' : (oldInverse ? 'add' : 'intersect');
+    el.style.webkitMaskComposite = composite;
+    el.style.maskComposite = composite;
+    el.dataset.joeMaskMode = 'dual-transition';
+  }
+
 
   function layerLensGeometry(layerId) {
     const state = layout.layers[layerId];
     const scale = Math.max(0.000001, Math.abs(Number(state?.scale) || 1));
-    const radius = Math.max(1, Number(layout.xray?.radius ?? 184)) / scale;
+    const radius = Math.max(1, Number(layout.xray?.radius ?? 184)) * lensRadiusMultiplier / scale;
     const feather = Math.max(0, Number(layout.xray?.feather ?? 52)) / scale;
     return { radius, feather };
   }
@@ -1579,15 +1677,18 @@
     const physicalScale = Math.max(0.000001, Number(stageScale) || 1);
     const next = {
       active: Boolean(active) && domainOwnsScene(1) && !editMode,
+      inverted: Boolean(lensInverted),
       sceneX: Number(scene.x) || 0,
       sceneY: Number(scene.y) || 0,
       viewportX: Number(viewportPoint.x) || 0,
       viewportY: Number(viewportPoint.y) || 0,
-      radius: Math.max(1, Number(layout.xray?.radius ?? 184)),
+      radius: Math.max(1, Number(layout.xray?.radius ?? 184)) * (lensTransition?.oldRadius ?? lensRadiusMultiplier),
       feather: Math.max(0, Number(layout.xray?.feather ?? 52)),
-      radiusPx: Math.max(1, Number(layout.xray?.radius ?? 184)) * physicalScale,
+      radiusPx: Math.max(1, Number(layout.xray?.radius ?? 184)) * (lensTransition?.oldRadius ?? lensRadiusMultiplier) * physicalScale,
       featherPx: Math.max(0, Number(layout.xray?.feather ?? 52)) * physicalScale
+      ,touchPoints: touchLensPoints.slice(0, 3).map(point => ({ x: point.x, y: point.y }))
     };
+    if (lensTransition) next.transitionRadiusPx = Math.max(1, Number(layout.xray?.radius ?? 184)) * lensTransition.oldRadius * physicalScale;
     window.__joeXrayLensState = next;
     try { window.dispatchEvent(new CustomEvent('joe-xray-lens-change', { detail: next })); } catch (_) {}
     return next;
@@ -1617,6 +1718,10 @@
         if (pairEl && pairState) pairEl.style.opacity = String(runtimeOpacity(pairId, pairState));
       }
     };
+    const sceneOneTextLayers = Object.entries(layout.layers || {}).filter(([, state]) => state?.type === 'text' && Number(state.scene) === 1);
+    const resetSceneOneTextMasks = () => {
+      for (const [textId] of sceneOneTextLayers) applyMask(elementFor(textId), false, 0, 0, false);
+    };
 
     if (editMode) {
       applyMask(sceneBackgroundEl, false, 0, 0, false);
@@ -1633,6 +1738,7 @@
       if (backgroundPerspectiveState && elMap.backgroundPerspective) elMap.backgroundPerspective.style.opacity = String(runtimeOpacity('backgroundPerspective', backgroundPerspectiveState));
       if (bonesState && elMap.characterBones) elMap.characterBones.style.opacity = String(runtimeOpacity('characterBones', bonesState));
       resetExtraPairs();
+      resetSceneOneTextMasks();
       return;
     }
 
@@ -1654,6 +1760,7 @@
       if (elMap.backgroundPerspective) elMap.backgroundPerspective.style.opacity = '0';
       if (elMap.characterBones) elMap.characterBones.style.opacity = '0';
       resetExtraPairs();
+      resetSceneOneTextMasks();
       return;
     }
 
@@ -1661,23 +1768,47 @@
 
     const maskLayerEffect = (el, inverse, layerId) => {
       if (!el) return;
+      const group = String(layout.layers?.[layerId]?.displayGroup || '');
+      if (group === 'reality') inverse = true;
+      else if (group === 'digital') inverse = false;
+      inverse = lensInverted ? !inverse : inverse;
       const local = sceneToLayer(scene.x, scene.y, layerId);
       const lens = layerLensGeometry(layerId);
+      if (lensTransition) {
+        const oldScene = lensTransition.oldScene || scene;
+        const oldLocal = sceneToLayer(oldScene.x, oldScene.y, layerId);
+        const baseRadius = Math.max(1, Number(layout.xray?.radius ?? 184)) / Math.max(.0001, Math.abs(Number(layout.layers[layerId]?.scale) || 1));
+        const baseInverse = group === 'reality' ? true : group === 'digital' ? false : inverse;
+        applyDualMask(el,
+          lensTransition.oldInverted ? !baseInverse : baseInverse, oldLocal,
+          baseRadius * lensTransition.oldRadius,
+          lensTransition.newInverted ? !baseInverse : baseInverse,
+          local, lens.radius, lens.feather);
+        return;
+      }
+      // Safari can crash when several large transformed images each receive a
+      // multi-layer CSS mask. Keep the image path on the stable single-mask
+      // compositor path; the touch-point union remains available to the
+      // lightweight digital-rain shader.
       applyMask(el, inverse, local.x, local.y, true, lens.radius, lens.feather);
     };
 
     const maskViewportEffect = (el, inverse) => {
       if (!el) return;
+      inverse = lensInverted ? !inverse : inverse;
       const r = el.getBoundingClientRect();
-      applyMask(
-        el,
-        inverse,
-        globalLens.viewportX - r.left,
-        globalLens.viewportY - r.top,
-        true,
-        globalLens.radiusPx,
-        globalLens.featherPx
-      );
+      if (lensTransition) {
+        const oldViewport = lensTransition.oldViewport || { x: globalLens.viewportX, y: globalLens.viewportY };
+        const oldPoint = { x: oldViewport.x - r.left, y: oldViewport.y - r.top };
+        const point = { x: globalLens.viewportX - r.left, y: globalLens.viewportY - r.top };
+        applyDualMask(el,
+          lensTransition.oldInverted ? !inverse : inverse, oldPoint,
+          globalLens.radiusPx * lensTransition.oldRadius / Math.max(.0001, lensRadiusMultiplier),
+          lensTransition.newInverted ? !inverse : inverse,
+          point, globalLens.radiusPx, globalLens.featherPx);
+        return;
+      }
+      applyMask(el, inverse, globalLens.viewportX - r.left, globalLens.viewportY - r.top, true, globalLens.radiusPx, globalLens.featherPx);
     };
 
     // The real Scene-1 photo is cut out exactly like the normal character body.
@@ -1693,6 +1824,29 @@
     // X-ray region is truly transparent rather than still darkened by grading.
     if (backgroundGrade) {
       maskViewportEffect(backgroundGrade, true);
+    }
+
+    // Text remains readable outside the lens, but becomes transparent inside
+    // the perspective region so the X-ray artwork can take visual priority.
+    for (const [textId] of sceneOneTextLayers) {
+      const textEl = elementFor(textId);
+      // Text lives on the same design stage as the background and character.
+      // Use the scene-space mask so stage scaling cannot create a second
+      // apparent circle or shift its centre relative to the X-ray artwork.
+      if (textEl) {
+        const local = sceneToLayer(scene.x, scene.y, textId);
+        const lens = layerLensGeometry(textId);
+        const baseRadius = Math.max(1, Number(layout.xray?.radius ?? 184)) / Math.max(.0001, Math.abs(Number(layout.layers[textId]?.scale) || 1));
+        const group = String(layout.layers?.[textId]?.displayGroup || 'reality');
+        const inverse = group === 'digital' ? false : true;
+        const oldTextLocal = lensTransition?.oldScene ? sceneToLayer(lensTransition.oldScene.x, lensTransition.oldScene.y, textId) : local;
+        if (lensTransition) applyDualMask(textEl,
+          lensTransition.oldInverted ? !inverse : inverse, oldTextLocal,
+          baseRadius * lensTransition.oldRadius,
+          lensTransition.newInverted ? !inverse : inverse,
+          local, lens.radius, lens.feather);
+        else applyMask(textEl, lensInverted ? !inverse : inverse, local.x, local.y, true, lens.radius, lens.feather);
+      }
     }
 
     if (mainState?.visible && elMap.characterMain) {
@@ -1768,6 +1922,83 @@
 
   let pendingLensPoint = null;
   let lensFrameRequest = 0;
+  let touchLensPoints = [];
+  let lensRadiusMultiplier = 1;
+  let lensExpansionFrame = 0;
+  let lensBirthFrame = 0;
+  let lensInverted = false;
+  let lensTransition = null;
+
+  function animateLensBirth() {
+    if (lensBirthFrame || lensExpansionFrame || touchLensPoints.length || editMode) return;
+    const start = performance.now();
+    // Cursor entry and click expansion share the same user-configurable pace.
+    const duration = Math.max(200, Math.min(5000, Number(layout.xray?.expansionDurationMs) || 1050));
+    const frame = now => {
+      if (!lastLensActive || lensExpansionFrame || touchLensPoints.length || editMode) {
+        lensBirthFrame = 0;
+        return;
+      }
+      const progress = Math.min(1, (now - start) / duration);
+      const eased = progress < .5 ? 2 * progress * progress : 1 - Math.pow(-2 * progress + 2, 2) / 2;
+      lensRadiusMultiplier = eased;
+      syncGlobalLensState(true);
+      applyLensAppearance(true);
+      if (progress < 1) lensBirthFrame = requestAnimationFrame(frame);
+      else {
+        lensRadiusMultiplier = 1;
+        lensBirthFrame = 0;
+      }
+    };
+    lensRadiusMultiplier = 0;
+    lensBirthFrame = requestAnimationFrame(frame);
+  }
+
+  function animateLensExpansion(clickPoint = null) {
+    if (lensExpansionFrame || touchLensPoints.length || editMode || !lastLensActive) return;
+    if (lensBirthFrame) {
+      cancelAnimationFrame(lensBirthFrame);
+      lensBirthFrame = 0;
+      lensRadiusMultiplier = 1;
+    }
+    const start = performance.now();
+    const startingPolarity = lensInverted;
+    const clickScene = clickPoint ? viewportToScene(Number(clickPoint.x), Number(clickPoint.y), 1) : window.__lastLensScene;
+    const duration = Math.max(200, Math.min(5000, Number(layout.xray?.expansionDurationMs) || 1050));
+    const peak = Math.max(8, Math.hypot(window.innerWidth, window.innerHeight) / Math.max(1, Number(layout.xray?.radius ?? 184)));
+    const frame = now => {
+      const progress = Math.min(1, (now - start) / duration);
+      const eased = progress < .5 ? 2 * progress * progress : 1 - Math.pow(-2 * progress + 2, 2) / 2;
+      if (progress >= 1) {
+        // Commit the reversed state directly at the terminal frame. Rendering
+        // the dual transition mask once more at 100% causes a one-frame flash
+        // of the previous circle on the outside, especially on the second tap.
+        lensExpansionFrame = 0;
+        lensTransition = null;
+        lensRadiusMultiplier = 1;
+        lensInverted = !startingPolarity;
+        syncGlobalLensState(true);
+        applyLensAppearance(true);
+        return;
+      }
+      const oldRadius = 1 + (peak - 1) * eased;
+      const newRadius = eased;
+      // The expanding outer circle is the current inner-circle content. After
+      // the first reversal that identity is opposite to the fullscreen
+      // polarity, so derive it explicitly instead of reusing the fullscreen
+      // flag (which made the second click expand the wrong circle).
+      lensTransition = { oldRadius, newRadius, oldInverted: startingPolarity, newInverted: !startingPolarity,
+        oldScene: clickScene ? { x: clickScene.x, y: clickScene.y } : null,
+        oldViewport: clickPoint ? { x: Number(clickPoint.x), y: Number(clickPoint.y) } : null };
+      lensRadiusMultiplier = newRadius;
+      lensInverted = startingPolarity;
+      syncGlobalLensState(true);
+      applyLensAppearance(true);
+      if (progress < 1) lensExpansionFrame = requestAnimationFrame(frame);
+      else { lensExpansionFrame = 0; }
+    };
+    lensExpansionFrame = requestAnimationFrame(frame);
+  }
 
   function flushLensFrame() {
     lensFrameRequest = 0;
@@ -1789,14 +2020,59 @@
     }
     const scene = viewportToScene(x, y, 1);
     window.__lastLensScene = scene;
+    const wasInactive = !lastLensActive;
     lastLensActive = true;
-    applyLensAppearance(true);
+    if (wasInactive && point.pointerType !== 'touch') {
+      lensRadiusMultiplier = 0;
+      syncGlobalLensState(true);
+      applyLensAppearance(true);
+      animateLensBirth();
+    } else {
+      syncGlobalLensState(true);
+      applyLensAppearance(true);
+    }
   }
 
   function updateLens(e) {
-    pendingLensPoint = { x: Number(e?.clientX), y: Number(e?.clientY) };
+    if (e?.pointerType === 'touch') {
+      const point = touchLensPoints.find(item => item.pointerId === e.pointerId);
+      if (!point) return;
+      point.x = Number(e.clientX); point.y = Number(e.clientY);
+      pendingLensPoint = { x: point.x, y: point.y };
+    } else pendingLensPoint = { x: Number(e?.clientX), y: Number(e?.clientY) };
     if (!lensFrameRequest) lensFrameRequest = requestAnimationFrame(flushLensFrame);
   }
+
+  let touchLensHeld = false;
+  let touchLensPointerId = null;
+  window.addEventListener('pointerdown', event => {
+    if (event.pointerType !== 'touch' || editMode) return;
+    if (touchLensPoints.length >= 3) return;
+    touchLensPoints.push({ pointerId: event.pointerId, x: Number(event.clientX), y: Number(event.clientY) });
+    touchLensPointerId = touchLensPoints[0]?.pointerId ?? null;
+    touchLensHeld = true;
+    updateLens(event);
+  }, { passive: true });
+  window.addEventListener('pointerup', event => {
+    if (event.pointerType !== 'touch') return;
+    touchLensPoints = touchLensPoints.filter(point => point.pointerId !== event.pointerId);
+    touchLensPointerId = touchLensPoints[0]?.pointerId ?? null;
+    if (touchLensPoints.length) { updateLens({ pointerType: 'touch', pointerId: touchLensPoints[0].pointerId, clientX: touchLensPoints[0].x, clientY: touchLensPoints[0].y }); return; }
+    touchLensHeld = false;
+    hideLens();
+  }, { passive: true });
+  window.addEventListener('pointercancel', event => {
+    if (event.pointerType !== 'touch') return;
+    touchLensPoints = touchLensPoints.filter(point => point.pointerId !== event.pointerId);
+    touchLensPointerId = touchLensPoints[0]?.pointerId ?? null;
+    if (touchLensPoints.length) return;
+    touchLensHeld = false;
+    hideLens();
+  }, { passive: true });
+  document.getElementById('sceneOneInteractionSurface')?.addEventListener('click', event => {
+    if (editMode || event.detail === 0 || window.matchMedia?.('(pointer: coarse), (max-width: 820px)')?.matches) return;
+    animateLensExpansion({ x: event.clientX, y: event.clientY });
+  });
 
   function hideLens() {
     pendingLensPoint = null;
@@ -1805,6 +2081,13 @@
       lensFrameRequest = 0;
     }
     lastLensActive = false;
+    if (lensExpansionFrame) cancelAnimationFrame(lensExpansionFrame);
+    lensExpansionFrame = 0;
+    if (lensBirthFrame) cancelAnimationFrame(lensBirthFrame);
+    lensBirthFrame = 0;
+    lensRadiusMultiplier = 1;
+    lensInverted = false;
+    lensTransition = null;
     applyLensAppearance(false);
   }
 
@@ -2214,8 +2497,9 @@
         const layer = next.layers[id];
         if (!layer) continue;
         const fallbackName = layer.type === 'video' ? 'video.mp4' : 'image.png';
-        const upload = await uploadAsset(dataUrlToBlob(record.dataUrl), record.fileName || layer.fileName || fallbackName);
-        layer.src = upload.src;
+        const mediaLayer = /** @type {import('../src/types').ImageLayer|import('../src/types').VideoLayer} */ (layer);
+        const upload = await uploadAsset(dataUrlToBlob(record.dataUrl), record.fileName || mediaLayer.fileName || fallbackName);
+        mediaLayer.src = upload.src;
       }
       layout = next;
     } else {
@@ -2238,7 +2522,12 @@
   document.documentElement.addEventListener('pointerleave', hideLens, { passive: true });
   document.addEventListener('pointerout', handleDocumentPointerExit, { passive: true, capture: true });
   document.addEventListener('mouseout', handleDocumentPointerExit, { passive: true, capture: true });
-  window.addEventListener('joe-active-domain-change', event => {
+  window.addEventListener('joe-active-domain-change', /** @param {CustomEvent} event */ (event) => {
+    textSceneEnteredAt = performance.now();
+    const scene = Number(event.detail?.sceneId);
+    const layers = Object.entries(layout.layers || {}).filter(([, layer]) => layer?.type === 'text' && Number(layer.scene) === scene);
+    const delays = layers.flatMap(([, layer]) => [Number(layer.displayTiming?.enterDelayMs) || 0, Number(layer.displayTiming?.visibleForMs) || 0]).filter(value => value > 0);
+    delays.forEach(delay => window.setTimeout(() => applyLayout(), delay + 8));
     if (Number(event.detail?.sceneId) !== 1) hideLens();
   });
   window.addEventListener('blur', hideLens, { passive: true });
@@ -2250,8 +2539,8 @@
     star.classList.toggle('is-active');
   });
 
-  document.addEventListener('click', event => {
-    const textEl = event.target.closest?.('[data-layer-id]');
+  document.addEventListener('click', /** @param {MouseEvent} event */ (event) => {
+    const textEl = /** @type {HTMLElement|null} */ (event.target instanceof Element ? event.target.closest('[data-layer-id]') : null);
     if (!textEl) return;
     const state = layout.layers[textEl.dataset.layerId];
     if (state && !domainOwnsScene(sceneOfLayer(state))) { event.preventDefault(); return; }
@@ -2273,9 +2562,9 @@
     else location.href = href;
   }, true);
 
-  document.addEventListener('keydown', event => {
+  document.addEventListener('keydown', /** @param {KeyboardEvent} event */ (event) => {
     if (editMode || (event.key !== 'Enter' && event.key !== ' ')) return;
-    const textEl = event.target.closest?.('[data-layer-id].has-configured-link');
+    const textEl = /** @type {HTMLElement|null} */ (event.target instanceof Element ? event.target.closest('[data-layer-id].has-configured-link') : null);
     if (!textEl || textEl.closest('a')) return;
     const state = layout.layers[textEl.dataset.layerId];
     if (state && !domainOwnsScene(sceneOfLayer(state))) return;
@@ -2284,7 +2573,7 @@
   });
 
   window.SceneLanguage = {
-    get language() { return uiLanguage; },
+    get language() { return /** @type {'zh'|'en'} */ (uiLanguage); },
     setLanguage: setUiLanguage
   };
 

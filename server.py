@@ -34,18 +34,28 @@ def safe_filename(name: str, content_type: str = "") -> str:
 
 def atomic_write_json(path: Path, payload) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
-    fd, temp_name = tempfile.mkstemp(prefix=path.name + ".", suffix=".tmp", dir=str(path.parent))
+    encoded = json.dumps(payload, ensure_ascii=False, separators=(",", ":"))
+    temp_name = None
     try:
+        fd, temp_name = tempfile.mkstemp(prefix=path.name + ".", suffix=".tmp", dir=str(path.parent))
         with os.fdopen(fd, "w", encoding="utf-8") as f:
             json.dump(payload, f, ensure_ascii=False, separators=(",", ":"))
             f.flush()
             os.fsync(f.fileno())
         os.replace(temp_name, path)
+    except PermissionError:
+        # Some macOS launch contexts deny temporary-file creation or replace
+        # on external volumes even when the target file is writable.
+        if temp_name:
+            try: os.unlink(temp_name)
+            except OSError: pass
+        path.write_text(encoded, encoding="utf-8")
+    else:
+        temp_name = None
     finally:
-        try:
-            os.unlink(temp_name)
-        except FileNotFoundError:
-            pass
+        if temp_name:
+            try: os.unlink(temp_name)
+            except OSError: pass
 
 
 def read_json(path: Path, fallback=None):

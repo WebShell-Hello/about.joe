@@ -6,8 +6,9 @@
   const VIEW_MODE_KEY = 'joe-view-mode-v1';
   const VIEW_STATE_KEY = 'joe-view-state-v2';
   const UI_LANG_KEY = 'joe-ui-language-v1';
+  const productionBuild = document.querySelector('meta[name="joe-build"]')?.content === 'production';
   const pageParams = new URLSearchParams(location.search);
-  const ASSET_BUILD = '65';
+  const ASSET_BUILD = '67';
 
   function ssGet(key) { try { return sessionStorage.getItem(key); } catch (_) { return null; } }
   function ssSet(key, value) { try { sessionStorage.setItem(key, value); } catch (_) {} }
@@ -19,7 +20,8 @@
   const legacyScene = Number(pageParams.get('scene'));
   const legacyRel = Number(pageParams.get('rel'));
   const legacyPos = Number(pageParams.get('pos'));
-  if (legacyMode) ssSet(VIEW_MODE_KEY, legacyMode);
+  if (legacyMode && !productionBuild) ssSet(VIEW_MODE_KEY, legacyMode);
+  if (productionBuild) ssRemove(VIEW_MODE_KEY);
   if (legacyLang === 'zh' || legacyLang === 'en') ssSet(UI_LANG_KEY, legacyLang);
   if (Number.isFinite(legacyScene) && Number.isFinite(legacyRel)) {
     ssSet(VIEW_STATE_KEY, JSON.stringify({ scene: legacyScene, rel: legacyRel, pending: true }));
@@ -29,7 +31,7 @@
   if (location.search) history.replaceState({ ...(history.state || {}), cleanUrl: true }, '', location.pathname + location.hash);
 
   const viewMode = ssGet(VIEW_MODE_KEY) || 'normal';
-  const editMode = viewMode === 'edit';
+  const editMode = !productionBuild && viewMode === 'edit';
   let pendingViewSnapshot = null;
   try { pendingViewSnapshot = JSON.parse(ssGet(VIEW_STATE_KEY) || 'null'); } catch (_) {}
   document.documentElement.classList.add('portfolio-booting');
@@ -90,10 +92,15 @@
 
     // Request all cinematic media immediately. Scene 3/4 are decoded while the
     // user is still on Scene 2, so layer changes do not wait for network loading.
-    roots.forEach(root => {
+    const mobile = window.matchMedia?.('(pointer: coarse), (max-width: 820px)')?.matches;
+    roots.forEach((root, index) => {
       root.querySelectorAll('video').forEach(video => {
-        video.preload = 'auto';
-        try { video.load(); } catch (_) {}
+        // Mobile Safari may terminate the tab when three 4K videos are
+        // eagerly decoded. Keep only Scene 2 warm on touch-sized screens;
+        // later chapters load when the user enters them.
+        const eager = !mobile || index === 0;
+        video.preload = eager ? 'auto' : 'metadata';
+        if (eager) { try { video.load(); } catch (_) {} }
       });
     });
   }
@@ -173,6 +180,7 @@
       // Shared runtime is loaded only after every scene exists in the DOM.
       await loadScript('shared/runtime.js');
       await loadScript('shared/editor.js');
+      if (productionBuild) document.getElementById('adminEntry')?.remove();
       initPortfolioNavigation();
       document.documentElement.classList.add('scenes-ready');
       const requestedView = consumePendingView();

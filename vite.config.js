@@ -3,6 +3,7 @@ import { resolve } from 'node:path';
 import { defineConfig } from 'vite';
 
 const runtimeDirectories = ['scenes', 'shared', 'data', 'uploads'];
+const runtimeFiles = ['app.js'];
 
 function copyRuntimeFiles() {
   return {
@@ -15,7 +16,19 @@ function copyRuntimeFiles() {
         const destination = resolve(outputDir, directory);
         if (existsSync(source)) cpSync(source, destination, { recursive: true });
       }
+      for (const file of runtimeFiles) {
+        const source = resolve(process.cwd(), file);
+        const destination = resolve(outputDir, file);
+        if (existsSync(source)) cpSync(source, destination);
+      }
     }
+  };
+}
+
+function markProductionBuild() {
+  return {
+    name: 'mark-production-build',
+    transformIndexHtml(html) { return html.replace('content="source"', 'content="production"'); }
   };
 }
 
@@ -32,5 +45,5 @@ export default defineConfig({
     port: 4173,
     strictPort: false
   },
-  plugins: [copyRuntimeFiles()]
+  plugins: [copyRuntimeFiles(), markProductionBuild()]
 });
