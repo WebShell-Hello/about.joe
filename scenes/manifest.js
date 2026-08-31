@@ -860,6 +860,11 @@
         stopPlaybackLoop();
         startFinalFrameSampler(controller);
         story.playbackRaf = requestAnimationFrame(() => playbackFrame(id));
+        // Video playback can promote a compositor layer after navigation has
+        // already focused the story. Reclaim focus once playback is actually
+        // running so Scene 4 accepts the next gesture without a screen click.
+        focusNavigationSurface();
+        setTimeout(focusNavigationSurface, 80);
       };
       if (promise?.then) {
         promise.then(beginLoop).catch(() => {
@@ -1338,6 +1343,8 @@
       // delaying focus here makes the next gesture feel like it was dropped.
       focusNavigationSurface();
       requestAnimationFrame(focusNavigationSurface);
+      setTimeout(focusNavigationSurface, 80);
+      setTimeout(focusNavigationSurface, 220);
     }
 
     function requestAdjacentScene(direction, reason = 'discrete-scroll') {

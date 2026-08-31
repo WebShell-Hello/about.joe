@@ -230,12 +230,17 @@ class Handler(SimpleHTTPRequestHandler):
     def log_message(self, fmt, *args):
         print(f"[{self.log_date_time_string()}] {fmt % args}")
 
+    def end_headers(self):
+        # Development responses must revalidate so local verification never
+        # serves an older HTML, JS, CSS, or asset file from browser cache.
+        self.send_header("Cache-Control", "no-store")
+        super().end_headers()
+
     def send_json(self, status: int, payload) -> None:
         raw = json.dumps(payload, ensure_ascii=False).encode("utf-8")
         self.send_response(status)
         self.send_header("Content-Type", "application/json; charset=utf-8")
         self.send_header("Content-Length", str(len(raw)))
-        self.send_header("Cache-Control", "no-store")
         self.end_headers()
         self.wfile.write(raw)
 

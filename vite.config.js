@@ -2,6 +2,10 @@ import { cpSync, existsSync, mkdirSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { defineConfig } from 'vite';
 
+// One version per dev/build process. Generating this inside transformIndexHtml
+// would invalidate every asset on every HTML request in Vite dev mode.
+const buildId = `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`;
+
 const runtimeDirectories = ['scenes', 'shared', 'data', 'uploads'];
 const runtimeFiles = ['app.js'];
 
@@ -28,7 +32,9 @@ function copyRuntimeFiles() {
 function markProductionBuild() {
   return {
     name: 'mark-production-build',
-    transformIndexHtml(html) { return html.replace('content="source"', 'content="production"'); }
+    transformIndexHtml(html) {
+      return html.replaceAll('__BUILD_ID__', buildId).replace('content="source"', 'content="production"');
+    }
   };
 }
 

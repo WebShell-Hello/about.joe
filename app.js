@@ -8,7 +8,9 @@
   const UI_LANG_KEY = 'joe-ui-language-v1';
   const productionBuild = document.querySelector('meta[name="joe-build"]')?.content === 'production';
   const pageParams = new URLSearchParams(location.search);
-  const ASSET_BUILD = '68';
+  const configuredBuild = document.querySelector('meta[name="joe-build-id"]')?.content || '';
+  const ASSET_BUILD = configuredBuild.startsWith('__') ? 'dev' : configuredBuild;
+  window.__joeAssetBuild = ASSET_BUILD;
 
   function ssGet(key) { try { return sessionStorage.getItem(key); } catch (_) { return null; } }
   function ssSet(key, value) { try { sessionStorage.setItem(key, value); } catch (_) {} }

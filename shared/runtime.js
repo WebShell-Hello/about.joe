@@ -21,6 +21,14 @@
   const UI_LANG_KEY = 'joe-ui-language-v1';
   const EDIT_SESSION_KEY = 'joe-scene1-edit-session-v1';
 
+  function versionedAssetUrl(url) {
+    const source = String(url || '');
+    if (!source || /^(data:|blob:|https?:|#)/i.test(source)) return source;
+    const build = String(window.__joeAssetBuild || '').trim();
+    if (!build || build === 'dev' || build.startsWith('__')) return source;
+    return `${source}${source.includes('?') ? '&' : '?'}v=${encodeURIComponent(build)}`;
+  }
+
   const VIEW_MODE_KEY = 'joe-view-mode-v1';
   const VIEW_STATE_KEY = 'joe-view-state-v2';
   const LEGACY_UI_LANG_KEY = 'joe-ui-language-v1';
@@ -1378,7 +1386,8 @@
       // not acquire an accidental vertical or horizontal distortion.
       el.style.objectFit = 'fill';
       el.style.objectPosition = 'center center';
-      if (s.src && el.getAttribute('src') !== s.src) el.setAttribute('src', s.src);
+      const assetSrc = versionedAssetUrl(s.src);
+      if (assetSrc && el.getAttribute('src') !== assetSrc) el.setAttribute('src', assetSrc);
       if ((!s.sourceWidth || !s.sourceHeight) && el.naturalWidth > 0 && el.naturalHeight > 0) {
         s.sourceWidth = el.naturalWidth;
         s.sourceHeight = el.naturalHeight;
@@ -1399,7 +1408,8 @@
         el.removeAttribute('autoplay');
         el.removeAttribute('controls');
       } else if (s.poster) {
-        if (el.getAttribute('poster') !== s.poster) el.setAttribute('poster', s.poster);
+        const posterSrc = versionedAssetUrl(s.poster);
+        if (el.getAttribute('poster') !== posterSrc) el.setAttribute('poster', posterSrc);
       } else if (el.hasAttribute('poster')) {
         el.removeAttribute('poster');
       }
@@ -1531,7 +1541,7 @@
 
   const alphaSource = new Image();
   alphaSource.decoding = 'async';
-  alphaSource.src = 'scenes/scene-1/assets/character-main.png';
+  alphaSource.src = versionedAssetUrl('scenes/scene-1/assets/character-main.png');
   alphaSource.onload = () => {
     alphaCtx.clearRect(0, 0, CHAR_W, CHAR_H);
     alphaCtx.drawImage(alphaSource, 0, 0, CHAR_W, CHAR_H);
