@@ -40,6 +40,12 @@ body.is-editing .scene-one-sticky {
 .scene-one-shell .viewport-background > img {
   transform: translate3d(0, var(--bg-scroll-y, 0px), 0) scale(var(--bg-zoom));
 }
+.scene-one-shell .viewport-background,
+.scene-one-shell .digital-rain-canvas,
+.scene-one-shell .viewport {
+  transform: translate3d(var(--mobile-pan-x, 0px), var(--mobile-pan-y, 0px), 0) scale(var(--mobile-content-scale, 1));
+  transform-origin: 50% 50%;
+}
 .scene-one-shell .viewport {
   position: absolute;
   inset: 0;
@@ -63,7 +69,7 @@ body.is-editing .scene-one-sticky {
   z-index: 200;
   background: transparent;
   pointer-events: auto;
-  touch-action: pan-y pinch-zoom;
+  touch-action: pan-y;
 }
 body.is-editing .scene-one-interaction-surface { display: none; }
 body.is-editing .scene-one-shell .digital-rain-canvas {

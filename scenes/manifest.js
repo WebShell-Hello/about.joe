@@ -1408,6 +1408,10 @@
 
     function handleTouchMove(event) {
       if (!story.active || !story.navigationDriven) return;
+      if (event?.touches?.length > 1) {
+        if (event.cancelable) event.preventDefault();
+        return;
+      }
       if (event?.cancelable) event.preventDefault();
       if (story.touchGestureTriggered) return;
       const touch = event?.touches?.[0];

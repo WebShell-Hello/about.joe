@@ -2135,15 +2135,78 @@
   let touchLensLongPressTimer = 0;
   let touchLensHasMultiplePointers = false;
   const touchLensPointerIds = new Set();
+  const touchGesturePoints = new Map();
+  let touchGestureActive = false;
+  let touchGestureStartDistance = 0;
+  let touchGestureStartCenter = null;
+  let touchGestureStartScale = 1;
+  let touchGestureStartPan = null;
+  let mobileContentScale = 1;
+  let mobilePanX = 0;
+  let mobilePanY = 0;
   let touchStartX = 0;
   let touchStartY = 0;
   let touchStartAt = 0;
   const TOUCH_LONG_PRESS_MS = 450;
+  const MOBILE_MIN_SCALE = 1;
+  const MOBILE_MAX_SCALE = 3;
+  function applyMobileGestureTransform() {
+    const shell = document.getElementById('sceneOneShell');
+    shell?.style.setProperty('--mobile-content-scale', mobileContentScale.toFixed(5));
+    shell?.style.setProperty('--mobile-pan-x', `${mobilePanX.toFixed(2)}px`);
+    shell?.style.setProperty('--mobile-pan-y', `${mobilePanY.toFixed(2)}px`);
+  }
+  function touchDistance(a, b) { return Math.hypot(b.x - a.x, b.y - a.y); }
+  function touchCenter(a, b) { return { x: (a.x + b.x) * 0.5, y: (a.y + b.y) * 0.5 }; }
+  function beginTouchGesture() {
+    const points = [...touchGesturePoints.values()];
+    if (points.length < 2) return;
+    touchGestureActive = true;
+    touchLensHasMultiplePointers = true;
+    touchGestureStartDistance = Math.max(1, touchDistance(points[0], points[1]));
+    touchGestureStartCenter = touchCenter(points[0], points[1]);
+    touchGestureStartScale = mobileContentScale;
+    touchGestureStartPan = { x: mobilePanX, y: mobilePanY };
+    if (touchLensLongPressTimer) {
+      clearTimeout(touchLensLongPressTimer);
+      touchLensLongPressTimer = 0;
+    }
+  }
+  function updateTouchGesture() {
+    if (!touchGestureActive || touchGesturePoints.size < 2) return;
+    const points = [...touchGesturePoints.values()];
+    const center = touchCenter(points[0], points[1]);
+    const ratio = touchDistance(points[0], points[1]) / touchGestureStartDistance;
+    mobileContentScale = Math.max(MOBILE_MIN_SCALE, Math.min(MOBILE_MAX_SCALE, touchGestureStartScale * ratio));
+    const maxPanX = Math.max(0, window.innerWidth * (mobileContentScale - 1) * 0.5);
+    const maxPanY = Math.max(0, window.innerHeight * (mobileContentScale - 1) * 0.5);
+    mobilePanX = Math.max(-maxPanX, Math.min(maxPanX, touchGestureStartPan.x + center.x - touchGestureStartCenter.x));
+    mobilePanY = Math.max(-maxPanY, Math.min(maxPanY, touchGestureStartPan.y + center.y - touchGestureStartCenter.y));
+    applyMobileGestureTransform();
+  }
+  function resetTouchGesture() {
+    touchGestureActive = false;
+    touchGestureStartCenter = null;
+    touchGestureStartPan = null;
+  }
+  document.getElementById('sceneOneInteractionSurface')?.addEventListener('pointermove', event => {
+    if (event.pointerType !== 'touch' || !touchGesturePoints.has(event.pointerId)) return;
+    const point = touchGesturePoints.get(event.pointerId);
+    point.x = Number(event.clientX) || point.x;
+    point.y = Number(event.clientY) || point.y;
+    if (touchGesturePoints.size >= 2) {
+      if (!touchGestureActive) beginTouchGesture();
+      updateTouchGesture();
+      if (event.cancelable) event.preventDefault();
+    }
+  }, { passive: false });
   window.addEventListener('pointerdown', event => {
     if (event.pointerType !== 'touch' || editMode) return;
     touchLensPointerIds.add(event.pointerId);
+    touchGesturePoints.set(event.pointerId, { x: Number(event.clientX) || 0, y: Number(event.clientY) || 0 });
     if (touchLensHeld) {
       touchLensHasMultiplePointers = true;
+      if (touchGesturePoints.size >= 2) beginTouchGesture();
       return;
     }
     touchStartX = Number(event.clientX) || 0;
@@ -2168,6 +2231,18 @@
   window.addEventListener('pointerup', event => {
     if (event.pointerType !== 'touch') return;
     touchLensPointerIds.delete(event.pointerId);
+    touchGesturePoints.delete(event.pointerId);
+    if (touchGestureActive) {
+      if (!touchGesturePoints.size) resetTouchGesture();
+      if (touchLensPointerId === event.pointerId) {
+        touchLensHeld = false;
+        touchLensPointerId = null;
+        touchLensPrimaryPoint = null;
+      }
+      touchLensHasMultiplePointers = touchGesturePoints.size > 0;
+      if (!touchGesturePoints.size) hideLens();
+      return;
+    }
     if (touchLensPointerId !== event.pointerId) return;
     if (touchLensLongPressTimer) {
       clearTimeout(touchLensLongPressTimer);
@@ -2200,6 +2275,13 @@
   window.addEventListener('pointercancel', event => {
     if (event.pointerType !== 'touch') return;
     touchLensPointerIds.delete(event.pointerId);
+    touchGesturePoints.delete(event.pointerId);
+    if (touchGestureActive) {
+      if (!touchGesturePoints.size) resetTouchGesture();
+      touchLensHasMultiplePointers = touchGesturePoints.size > 0;
+      if (!touchGesturePoints.size) hideLens();
+      return;
+    }
     if (touchLensPointerId !== event.pointerId) return;
     if (touchLensLongPressTimer) {
       clearTimeout(touchLensLongPressTimer);
@@ -2690,6 +2772,12 @@
   window.addEventListener('joe-active-domain-change', /** @param {CustomEvent} event */ (event) => {
     textSceneEnteredAt = performance.now();
     const scene = Number(event.detail?.sceneId);
+    if (scene !== 1) {
+      mobileContentScale = 1;
+      mobilePanX = 0;
+      mobilePanY = 0;
+      applyMobileGestureTransform();
+    }
     const layers = Object.entries(layout.layers || {}).filter(([, layer]) => layer?.type === 'text' && Number(layer.scene) === scene);
     const delays = layers.flatMap(([, layer]) => [Number(layer.displayTiming?.enterDelayMs) || 0, Number(layer.displayTiming?.fadeInMs ?? layer.displayTiming?.visibleForMs) || 0, (Number(layer.displayTiming?.enterDelayMs) || 0) + (Number(layer.displayTiming?.fadeInMs ?? layer.displayTiming?.visibleForMs) || 0)]).filter(value => value > 0);
     delays.forEach(delay => window.setTimeout(() => applyLayout(), delay + 8));

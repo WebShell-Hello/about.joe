@@ -4,6 +4,114 @@
   const canvas = document.getElementById('digitalRainCanvas');
   if (!canvas) return;
 
+  const mobile = window.matchMedia?.('(pointer: coarse), (max-width: 820px)')?.matches;
+
+  // Mobile Safari and some embedded Chromium builds can lose the whole page
+  // when a WebGL context is updated during the first touch gesture. Keep the
+  // same lens semantics with a deliberately small 2D renderer on mobile.
+  if (mobile) {
+    const ctx = canvas.getContext('2d', { alpha: true });
+    if (!ctx) return;
+    let rafId = 0;
+    let lastWidth = 0;
+    let lastHeight = 0;
+    let lastDpr = 0;
+    let running = false;
+    let startedAt = performance.now();
+    const streams = [];
+
+    function resizeFallback() {
+      const rect = canvas.getBoundingClientRect();
+      const width = Math.max(1, Math.round(rect.width));
+      const height = Math.max(1, Math.round(rect.height));
+      const dpr = Math.max(1, Math.min(1.35, Number(window.devicePixelRatio) || 1));
+      if (width === lastWidth && height === lastHeight && Math.abs(dpr - lastDpr) < 0.01) return;
+      lastWidth = width;
+      lastHeight = height;
+      lastDpr = dpr;
+      canvas.width = Math.max(1, Math.round(width * dpr));
+      canvas.height = Math.max(1, Math.round(height * dpr));
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      streams.length = 0;
+      const columns = Math.max(12, Math.min(30, Math.ceil(width / 18)));
+      for (let column = 0; column < columns; column++) {
+        streams.push({
+          x: (column + 0.5) * width / columns,
+          speed: 42 + ((column * 37) % 86),
+          offset: ((column * 71) % 100) / 100,
+          length: 7 + ((column * 13) % 15)
+        });
+      }
+    }
+
+    function state() {
+      const lens = window.__joeXrayLensState || {};
+      return {
+        active: Boolean(lens.active),
+        fullscreen: Boolean(lens.digitalRainFullscreen),
+        inverted: Boolean(lens.inverted),
+        x: Number(lens.viewportX) || window.innerWidth * 0.5,
+        y: Number(lens.viewportY) || window.innerHeight * 0.5,
+        radius: Math.max(1, Number(lens.transitionRadiusPx) || Number(lens.radiusPx) || 1),
+        feather: Math.max(0, Number(lens.featherPx) || 0)
+      };
+    }
+
+    function draw(now) {
+      if (!running) return;
+      resizeFallback();
+      const rect = canvas.getBoundingClientRect();
+      const lens = state();
+      const elapsed = (now - startedAt) / 1000;
+      ctx.clearRect(0, 0, rect.width, rect.height);
+      if (!lens.active && !lens.fullscreen) {
+        rafId = requestAnimationFrame(draw);
+        return;
+      }
+      if (!lens.fullscreen) {
+        ctx.save();
+        ctx.beginPath();
+        ctx.arc(lens.x - rect.left, lens.y - rect.top, lens.radius, 0, Math.PI * 2);
+        if (lens.inverted) ctx.rect(0, 0, rect.width, rect.height);
+        ctx.clip(lens.inverted ? 'evenodd' : 'nonzero');
+      }
+      ctx.font = '12px monospace';
+      ctx.textAlign = 'center';
+      for (const stream of streams) {
+        const head = ((elapsed * stream.speed + stream.offset * rect.height) % (rect.height + stream.length * 18)) - stream.length * 18;
+        for (let row = 0; row < stream.length; row++) {
+          const y = head + row * 18;
+          if (y < -16 || y > rect.height + 16) continue;
+          const digit = ((row + Math.floor(elapsed * 2) + Math.floor(stream.x)) % 2) ? '1' : '0';
+          const alpha = Math.max(0.08, 0.78 - row / (stream.length * 1.35));
+          ctx.fillStyle = row === 0 ? `rgba(100, 245, 255, ${alpha})` : `rgba(0, 150, 210, ${alpha})`;
+          ctx.fillText(digit, stream.x, y);
+        }
+      }
+      if (!lens.fullscreen) ctx.restore();
+      rafId = requestAnimationFrame(draw);
+    }
+
+    function start() {
+      if (running || document.hidden) return;
+      running = true;
+      startedAt = performance.now();
+      rafId = requestAnimationFrame(draw);
+    }
+    function stop() {
+      running = false;
+      if (rafId) cancelAnimationFrame(rafId);
+      rafId = 0;
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+    }
+    window.addEventListener('resize', resizeFallback, { passive: true });
+    document.addEventListener('visibilitychange', () => document.hidden ? stop() : start());
+    window.addEventListener('pagehide', stop, { once: true });
+    start();
+    window.__joeDigitalRain = { start, stop, get running() { return running; } };
+    return;
+  }
+
   const gl = canvas.getContext('webgl2', {
     alpha: true,
     antialias: false,
