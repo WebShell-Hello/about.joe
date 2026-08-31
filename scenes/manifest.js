@@ -443,6 +443,7 @@
       if (layer.type === 'video' && VIDEO_SCENES.includes(scene)) return clamp01(story.visuals.videoOpacity[scene] ?? 1);
       if (layer.type === 'text' && VIDEO_SCENES.includes(scene)) return clamp01(story.visuals.textOpacity[scene] ?? 0);
       if (scene === 5) return clamp01(story.visuals.scene5ContentOpacity ?? 0);
+      if (scene === 6 || scene === 7) return story.activeDomainId === scene ? 1 : 0;
       return 1;
     };
 

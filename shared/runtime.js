@@ -1318,7 +1318,7 @@
     const timingMultiplier = s.type === 'text' ? textTimingMultiplier(s) : 1;
     const scene=validSceneId(s.scene,MIN_SCENE_ID);
     const story=window.__joeSimpleVideoStory;
-    if(story?.active&&typeof story.getLayerOpacityMultiplier==='function'&&[2,3,4,5].includes(Number(scene))){
+    if(story?.active&&typeof story.getLayerOpacityMultiplier==='function'&&[2,3,4,5,6,7].includes(Number(scene))){
       return s.opacity*story.getLayerOpacityMultiplier(s)*timingMultiplier;
     }
     if(s.type==='text'&&[2,3].includes(Number(scene)))return s.opacity*videoSceneTextVisibility(scene)*timingMultiplier;
@@ -2772,6 +2772,9 @@
   window.addEventListener('joe-active-domain-change', /** @param {CustomEvent} event */ (event) => {
     textSceneEnteredAt = performance.now();
     const scene = Number(event.detail?.sceneId);
+    // Static scenes must repaint immediately after a rapid navigation change.
+    // This prevents Scene 6 text from retaining a stale opacity from Scene 5/7.
+    applyLayout();
     if (scene !== 1) {
       mobileContentScale = 1;
       mobilePanX = 0;

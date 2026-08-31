@@ -18,6 +18,8 @@
   top: var(--scene7-stage-top);
   width: 1402px;
   height: 1122px;
+  transform: scale(var(--scene7-stage-scale));
+  transform-origin: 0 0;
   overflow: hidden;
   user-select: none;
 }
