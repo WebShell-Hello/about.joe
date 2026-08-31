@@ -217,6 +217,7 @@
     const state = window.__joeXrayLensState || {};
     return {
       active: Boolean(state.active),
+      digitalFullscreen: Boolean(state.digitalRainFullscreen),
       x: Number(state.viewportX) || 0,
       y: Number(state.viewportY) || 0,
       radius: Math.max(1, Number(state.radiusPx) || 1),
@@ -269,13 +270,13 @@
     const shaderPoints = (shaderTouches.length ? shaderTouches : [{ x: lens.x, y: lens.y }]).slice(0, 3).map(point => [Number(point.x) - rect.left, Number(point.y) - rect.top]);
     while (shaderPoints.length < 3) shaderPoints.push(shaderPoints[0] || [0, 0]);
     gl.uniform2fv(uniforms.lenses, new Float32Array(shaderPoints.flat()));
-    gl.uniform1i(uniforms.lensCount, lens.active ? (shaderTouches.length || 1) : 0);
+    gl.uniform1i(uniforms.lensCount, lens.digitalFullscreen ? 0 : (lens.active ? (shaderTouches.length || 1) : 0));
     gl.uniform1i(uniforms.lensInverted, window.__joeXrayLensState?.inverted ? 1 : 0);
     gl.uniform1f(uniforms.radius, Number(window.__joeXrayLensState?.transitionRadiusPx) || lens.radius);
     gl.uniform1f(uniforms.feather, lens.feather);
     const rain = rainSettings();
     gl.uniform1f(uniforms.time, elapsed);
-    gl.uniform1f(uniforms.visible, lens.active ? 1 : 0);
+    gl.uniform1f(uniforms.visible, (lens.active || lens.digitalFullscreen) ? 1 : 0);
     gl.uniform1f(uniforms.density, rain.density);
     gl.uniform1f(uniforms.digitSize, rain.digitSize);
     gl.clearColor(0, 0, 0, 0);

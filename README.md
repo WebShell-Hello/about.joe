@@ -12,7 +12,7 @@
 - Only the next discrete wheel/trackpad/touch/navigation action advances to the next scene.
 - The frozen final frame participates in the following crossfade, preventing a Safari end-frame flash.
 
-# Joe's Portfolio — editable multi-scene build
+# About Joe — editable multi-scene build
 
 ## Code version
 

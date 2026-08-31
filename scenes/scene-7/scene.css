@@ -14,9 +14,10 @@
 }
 .scene-seven-stage {
   position: absolute;
-  inset: 0;
-  width: 100vw;
-  height: 100dvh;
+  left: var(--scene7-stage-left);
+  top: var(--scene7-stage-top);
+  width: 1402px;
+  height: 1122px;
   overflow: hidden;
   user-select: none;
 }

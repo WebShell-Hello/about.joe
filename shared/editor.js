@@ -286,9 +286,9 @@
 
   function ensureSiteTitleState() {
     if (!S.layout.siteTitle || typeof S.layout.siteTitle !== 'object') {
-      S.layout.siteTitle = { en: "Joe's Portfolio", zh: 'Joe 的作品集' };
+      S.layout.siteTitle = { en: 'About Joe', zh: 'Joe 的作品集' };
     }
-    if (!String(S.layout.siteTitle.en || '').trim()) S.layout.siteTitle.en = "Joe's Portfolio";
+    if (!String(S.layout.siteTitle.en || '').trim()) S.layout.siteTitle.en = 'About Joe';
     if (!String(S.layout.siteTitle.zh || '').trim()) S.layout.siteTitle.zh = 'Joe 的作品集';
     return S.layout.siteTitle;
   }

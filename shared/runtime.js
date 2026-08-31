@@ -94,7 +94,7 @@
       returnEditor.textContent = uiLanguage === 'zh' ? '返回编辑器' : 'Return to editor';
       returnEditor.setAttribute('aria-label', uiLanguage === 'zh' ? '返回编辑器' : 'Return to editor');
     }
-    const defaultTitle = uiLanguage === 'zh' ? 'Joe 的作品集' : "Joe's Portfolio";
+    const defaultTitle = uiLanguage === 'zh' ? 'Joe 的作品集' : 'About Joe';
     document.title = String(layout?.siteTitle?.[uiLanguage] || defaultTitle);
     const navLabels = uiLanguage === 'zh'
       ? { 1:'首页', 2:'关于', 3:'经历', 4:'技能', 5:'项目', 6:'博客', 7:'联系' }
@@ -268,7 +268,7 @@
 
   const DEFAULT_LAYOUT = {
     version: 35,
-    siteTitle: { en: "Joe's Portfolio", zh: 'Joe 的作品集' },
+    siteTitle: { en: 'About Joe', zh: 'Joe 的作品集' },
     layers: Object.assign({}, ...(sceneRegistry?.all() || []).map(module => JSON.parse(JSON.stringify(module.layers || {})))),
     deletedLayers: [],
     bindings: {
@@ -620,7 +620,7 @@
 
     if (source.siteTitle && typeof source.siteTitle === 'object') {
       out.siteTitle = {
-        en: String(source.siteTitle.en ?? out.siteTitle.en ?? "Joe's Portfolio"),
+        en: String(source.siteTitle.en ?? out.siteTitle.en ?? 'About Joe'),
         zh: String(source.siteTitle.zh ?? out.siteTitle.zh ?? 'Joe 的作品集')
       };
     }
@@ -1224,7 +1224,6 @@
 
   function scenePointToViewport(sceneX,sceneY,sceneId=MIN_SCENE_ID){
     const scene=validSceneId(sceneId,MIN_SCENE_ID),sceneStage=stageForScene(scene);if(!sceneStage)return{x:0,y:0};const rect=sceneStage.getBoundingClientRect();
-    if(scene>=5)return{x:rect.left+Number(sceneX||0),y:rect.top+Number(sceneY||0)};
     const module=sceneRegistry?.get(scene),videoLayer=Object.values(module?.layers||{}).find(layer=>layer?.type==='video'),baseW=videoLayer?Number(videoLayer.width||1920):DESIGN_W,scale=Math.max(.000001,rect.width/baseW);
     return{x:rect.left+Number(sceneX||0)*scale,y:rect.top+Number(sceneY||0)*scale};
   }
@@ -1488,10 +1487,11 @@
     const videoTransforms = {};
     for (const module of (sceneRegistry?.all() || [])) {
       const videoLayer = Object.values(module.layers || {}).find(layer => layer?.type === 'video');
-      if (!videoLayer || !module.stageId) continue;
-      const baseW = Math.max(1, Number(videoLayer.width || 1920));
-      const baseH = Math.max(1, Number(videoLayer.height || 1080));
-      const scale = Math.max(vw / baseW, vh / baseH);
+      if (!module.stageId) continue;
+      const baseW = videoLayer ? Math.max(1, Number(videoLayer.width || 1920)) : DESIGN_W;
+      const baseH = videoLayer ? Math.max(1, Number(videoLayer.height || 1080)) : DESIGN_H;
+      const mobileViewport = window.matchMedia?.('(pointer: coarse), (max-width: 820px)')?.matches;
+      const scale = mobileViewport ? Math.min(vw / baseW, vh / baseH) : Math.max(vw / baseW, vh / baseH);
       const left = (vw - baseW * scale) / 2;
       const top = (vh - baseH * scale) / 2;
       root.style.setProperty(`--scene${module.id}-stage-scale`, scale.toFixed(7));
@@ -1510,7 +1510,6 @@
     const sceneStage = stageForScene(sceneId);
     if (!sceneStage) return { x: 0, y: 0 };
     const rect = sceneStage.getBoundingClientRect();
-    if (Number(sceneId) >= 5) return { x: clientX - rect.left, y: clientY - rect.top };
     const module = sceneRegistry?.get(Number(sceneId));
     const videoLayer = Object.values(module?.layers || {}).find(layer => layer?.type === 'video');
     const baseW = videoLayer ? Number(videoLayer.width || 1920) : DESIGN_W;
@@ -1684,8 +1683,10 @@
     const scene = window.__lastLensScene || { x: 0, y: 0 };
     const viewportPoint = scenePointToViewport(scene.x, scene.y, 1);
     const physicalScale = Math.max(0.000001, Number(stageScale) || 1);
+    const digitalRainFullscreen = !active && lensCommitted && lensInverted;
     const next = {
-      active: Boolean(active) && domainOwnsScene(1) && !editMode,
+      active: (Boolean(active) || digitalRainFullscreen) && domainOwnsScene(1) && !editMode,
+      digitalRainFullscreen,
       inverted: Boolean(lensInverted),
       sceneX: Number(scene.x) || 0,
       sceneY: Number(scene.y) || 0,
@@ -1755,6 +1756,40 @@
     const xrayBonesOpacity = Number(layout.xray?.bonesOpacity ?? 0.92);
 
     if (!active) {
+      if (lensCommitted && lensInverted) {
+        // After a click, leaving the document hides only the cursor lens. The
+        // committed polarity remains in effect, so the digital group fills the
+        // scene instead of reverting to the initial reality group.
+        applyMask(sceneBackgroundEl, false, 0, 0, false);
+        resetGradeMask();
+        applyMask(elMap.characterMain, false, 0, 0, false);
+        applyMask(characterMainLens, false, 0, 0, false);
+        applyMask(elMap.characterPerspective, false, 0, 0, false);
+        applyMask(elMap.backgroundPerspective, false, 0, 0, false);
+        applyMask(elMap.characterBones, false, 0, 0, false);
+        if (sceneBackgroundState && sceneBackgroundEl) sceneBackgroundEl.style.opacity = '0';
+        if (elMap.characterMain) elMap.characterMain.style.opacity = '0';
+        characterMainLens.style.opacity = '0';
+        if (perspectiveState && elMap.characterPerspective) elMap.characterPerspective.style.opacity = String(runtimeOpacity('characterPerspective', perspectiveState) * xrayPerspectiveOpacity);
+        if (backgroundPerspectiveState && elMap.backgroundPerspective) elMap.backgroundPerspective.style.opacity = String(runtimeOpacity('backgroundPerspective', backgroundPerspectiveState) * xrayPerspectiveOpacity);
+        if (bonesState && elMap.characterBones) elMap.characterBones.style.opacity = String(runtimeOpacity('characterBones', bonesState) * xrayBonesOpacity);
+        for (const [overlayId, overlayState] of extraXrayEntries) {
+          const overlayEl = elementFor(overlayId);
+          const pairId = String(overlayState?.xrayPairOf || '');
+          const pairEl = pairId ? elementFor(pairId) : null;
+          const pairState = pairId ? layout.layers?.[pairId] : null;
+          applyMask(overlayEl, false, 0, 0, false);
+          if (overlayEl) overlayEl.style.opacity = overlayState?.visible === false ? '0' : String(runtimeOpacity(overlayId, overlayState) * xrayPerspectiveOpacity);
+          applyMask(pairEl, false, 0, 0, false);
+          if (pairEl) pairEl.style.opacity = pairState?.visible === false ? '0' : '0';
+        }
+        for (const [textId, textState] of sceneOneTextLayers) {
+          const textEl = elementFor(textId);
+          applyMask(textEl, false, 0, 0, false);
+          if (textEl) textEl.style.opacity = textState?.displayGroup === 'digital' ? String(runtimeOpacity(textId, textState)) : '0';
+        }
+        return;
+      }
       applyMask(sceneBackgroundEl, false, 0, 0, false);
       resetGradeMask();
       applyMask(elMap.characterMain, false, 0, 0, false);
@@ -1936,6 +1971,8 @@
   let lensExpansionFrame = 0;
   let lensBirthFrame = 0;
   let lensInverted = false;
+  let lensCommitted = false;
+  let suppressNewLensOnExit = false;
   let lensTransition = null;
 
   function animateLensBirth() {
@@ -1964,7 +2001,27 @@
   }
 
   function animateLensExpansion(clickPoint = null) {
-    if (lensExpansionFrame || touchLensPoints.length || editMode || !lastLensActive) return;
+    let interruptedOldRadius = 1;
+    let interruptedOldScene = null;
+    let interruptedOldViewport = null;
+    if (lensExpansionFrame) {
+      // The newborn circle becomes the expanding circle immediately. Capture
+      // its current geometry, reverse the polarity, and restart the transition
+      // at once so a click never waits for the previous animation to finish.
+      if (!lensTransition || !clickPoint) return;
+      interruptedOldRadius = Math.max(0, Number(lensTransition.newRadius) || 0);
+      interruptedOldScene = window.__lastLensScene ? { ...window.__lastLensScene } : null;
+      interruptedOldViewport = {
+        x: Number(window.__joeXrayLensState?.viewportX) || Number(clickPoint.x),
+        y: Number(window.__joeXrayLensState?.viewportY) || Number(clickPoint.y)
+      };
+      cancelAnimationFrame(lensExpansionFrame);
+      lensExpansionFrame = 0;
+      lensTransition = null;
+      lensRadiusMultiplier = 1;
+      lensInverted = !lensInverted;
+    }
+    if (touchLensPoints.length || editMode || !lastLensActive) return;
     if (lensBirthFrame) {
       cancelAnimationFrame(lensBirthFrame);
       lensBirthFrame = 0;
@@ -1974,7 +2031,21 @@
     const startingPolarity = lensInverted;
     const clickScene = clickPoint ? viewportToScene(Number(clickPoint.x), Number(clickPoint.y), 1) : window.__lastLensScene;
     const duration = Math.max(200, Math.min(5000, Number(layout.xray?.expansionDurationMs) || 1050));
-    const peak = Math.max(8, Math.hypot(window.innerWidth, window.innerHeight) / Math.max(1, Number(layout.xray?.radius ?? 184)));
+    const baseRadius = Math.max(1, Number(layout.xray?.radius ?? 184));
+    const feather = Math.max(0, Number(layout.xray?.feather ?? 52));
+    const clickX = Number(clickPoint?.x ?? window.innerWidth * 0.5);
+    const clickY = Number(clickPoint?.y ?? window.innerHeight * 0.5);
+    const farthestCorner = Math.max(
+      Math.hypot(clickX, clickY),
+      Math.hypot(window.innerWidth - clickX, clickY),
+      Math.hypot(clickX, window.innerHeight - clickY),
+      Math.hypot(window.innerWidth - clickX, window.innerHeight - clickY)
+    );
+    // The multiplier is applied to scene-space masks, so include the viewport
+    // scale and the feather edge when choosing the radius that covers every
+    // corner from the actual click position.
+    const physicalScale = Math.max(0.000001, Number(stageScale) || 1);
+    const peak = Math.max(8, (farthestCorner + feather * physicalScale) / (baseRadius * physicalScale));
     const frame = now => {
       const progress = Math.min(1, (now - start) / duration);
       const eased = progress < .5 ? 2 * progress * progress : 1 - Math.pow(-2 * progress + 2, 2) / 2;
@@ -1986,19 +2057,25 @@
         lensTransition = null;
         lensRadiusMultiplier = 1;
         lensInverted = !startingPolarity;
+        lensCommitted = true;
+        const leftDuringTransition = suppressNewLensOnExit;
+        suppressNewLensOnExit = false;
         syncGlobalLensState(true);
-        applyLensAppearance(true);
+        if (leftDuringTransition) {
+          lastLensActive = false;
+          applyLensAppearance(false);
+        } else applyLensAppearance(true);
         return;
       }
-      const oldRadius = 1 + (peak - 1) * eased;
-      const newRadius = eased;
+      const oldRadius = interruptedOldRadius + (peak - interruptedOldRadius) * eased;
+      const newRadius = suppressNewLensOnExit ? 0 : eased;
       // The expanding outer circle is the current inner-circle content. After
       // the first reversal that identity is opposite to the fullscreen
       // polarity, so derive it explicitly instead of reusing the fullscreen
       // flag (which made the second click expand the wrong circle).
       lensTransition = { oldRadius, newRadius, oldInverted: startingPolarity, newInverted: !startingPolarity,
-        oldScene: clickScene ? { x: clickScene.x, y: clickScene.y } : null,
-        oldViewport: clickPoint ? { x: Number(clickPoint.x), y: Number(clickPoint.y) } : null };
+        oldScene: interruptedOldScene || (clickScene ? { x: clickScene.x, y: clickScene.y } : null),
+        oldViewport: interruptedOldViewport || (clickPoint ? { x: Number(clickPoint.x), y: Number(clickPoint.y) } : null) };
       lensRadiusMultiplier = newRadius;
       lensInverted = startingPolarity;
       syncGlobalLensState(true);
@@ -2054,28 +2131,84 @@
 
   let touchLensHeld = false;
   let touchLensPointerId = null;
+  let touchLensPrimaryPoint = null;
+  let touchLensLongPressTimer = 0;
+  let touchLensHasMultiplePointers = false;
+  const touchLensPointerIds = new Set();
+  let touchStartX = 0;
+  let touchStartY = 0;
+  let touchStartAt = 0;
+  const TOUCH_LONG_PRESS_MS = 450;
   window.addEventListener('pointerdown', event => {
     if (event.pointerType !== 'touch' || editMode) return;
-    if (touchLensPoints.length >= 3) return;
-    touchLensPoints.push({ pointerId: event.pointerId, x: Number(event.clientX), y: Number(event.clientY) });
-    touchLensPointerId = touchLensPoints[0]?.pointerId ?? null;
+    touchLensPointerIds.add(event.pointerId);
+    if (touchLensHeld) {
+      touchLensHasMultiplePointers = true;
+      return;
+    }
+    touchStartX = Number(event.clientX) || 0;
+    touchStartY = Number(event.clientY) || 0;
+    touchStartAt = performance.now();
+    touchLensPointerId = event.pointerId;
+    touchLensPrimaryPoint = { x: touchStartX, y: touchStartY };
     touchLensHeld = true;
-    updateLens(event);
+    touchLensLongPressTimer = window.setTimeout(() => {
+      touchLensLongPressTimer = 0;
+      if (!touchLensHeld || !touchLensPrimaryPoint) return;
+      window.__lastLensScene = viewportToScene(touchLensPrimaryPoint.x, touchLensPrimaryPoint.y, 1);
+      updateLens({
+        // Long press is a stationary visual hover on mobile. Do not route it
+        // through the touch-move path, which only accepts tracked touch ids.
+        pointerType: 'mouse',
+        clientX: touchLensPrimaryPoint.x,
+        clientY: touchLensPrimaryPoint.y
+      });
+    }, TOUCH_LONG_PRESS_MS);
   }, { passive: true });
   window.addEventListener('pointerup', event => {
     if (event.pointerType !== 'touch') return;
-    touchLensPoints = touchLensPoints.filter(point => point.pointerId !== event.pointerId);
-    touchLensPointerId = touchLensPoints[0]?.pointerId ?? null;
-    if (touchLensPoints.length) { updateLens({ pointerType: 'touch', pointerId: touchLensPoints[0].pointerId, clientX: touchLensPoints[0].x, clientY: touchLensPoints[0].y }); return; }
+    touchLensPointerIds.delete(event.pointerId);
+    if (touchLensPointerId !== event.pointerId) return;
+    if (touchLensLongPressTimer) {
+      clearTimeout(touchLensLongPressTimer);
+      touchLensLongPressTimer = 0;
+    }
+    const endX = Number(event.clientX) || touchStartX;
+    const endY = Number(event.clientY) || touchStartY;
+    const isVerticalSwipe = Math.abs(endY - touchStartY) >= 46 && Math.abs(endY - touchStartY) >= Math.abs(endX - touchStartX) * 1.1;
+    const isUpSwipe = isVerticalSwipe && endY < touchStartY;
+    const isLongPress = performance.now() - touchStartAt >= TOUCH_LONG_PRESS_MS;
     touchLensHeld = false;
-    hideLens();
+    touchLensPointerId = null;
+    touchLensPrimaryPoint = null;
+    if (isUpSwipe || isLongPress || touchLensHasMultiplePointers || touchLensPointerIds.size) {
+      touchLensHasMultiplePointers = false;
+      hideLens();
+      return;
+    }
+    const tapPoint = { x: endX, y: endY };
+    window.__lastLensScene = viewportToScene(endX, endY, 1);
+    lastLensActive = true;
+    lensRadiusMultiplier = 1;
+    syncGlobalLensState(true);
+    applyLensAppearance(true);
+    animateLensExpansion(tapPoint);
+    // A touch has no persistent cursor. Once the tap is released, remove the
+    // newborn cursor circle while allowing the outer expansion to continue.
+    hideLens({ preserveCommitted: true });
   }, { passive: true });
   window.addEventListener('pointercancel', event => {
     if (event.pointerType !== 'touch') return;
-    touchLensPoints = touchLensPoints.filter(point => point.pointerId !== event.pointerId);
-    touchLensPointerId = touchLensPoints[0]?.pointerId ?? null;
-    if (touchLensPoints.length) return;
+    touchLensPointerIds.delete(event.pointerId);
+    if (touchLensPointerId !== event.pointerId) return;
+    if (touchLensLongPressTimer) {
+      clearTimeout(touchLensLongPressTimer);
+      touchLensLongPressTimer = 0;
+    }
     touchLensHeld = false;
+    touchLensPointerId = null;
+    touchLensPrimaryPoint = null;
+    touchLensHasMultiplePointers = false;
     hideLens();
   }, { passive: true });
   document.getElementById('sceneOneInteractionSurface')?.addEventListener('click', event => {
@@ -2083,7 +2216,26 @@
     animateLensExpansion({ x: event.clientX, y: event.clientY });
   });
 
-  function hideLens({ reset = false } = {}) {
+  function hideLens({ reset = false, preserveCommitted = false } = {}) {
+    // Leaving the document should stop cursor tracking, but a completed click
+    // transition is persistent until the user changes scene or explicitly
+    // resets the lens. Keep the current lens and polarity in that state.
+    if (preserveCommitted && lensTransition) {
+      // An unfinished newborn circle belongs to the cursor. Remove only that
+      // inner circle; the outer circle must keep its own expansion timeline.
+      pendingLensPoint = null;
+      suppressNewLensOnExit = true;
+      lastLensActive = true;
+      applyLensAppearance(true);
+      return;
+    }
+    if (preserveCommitted && lensExpansionFrame) return;
+    if (preserveCommitted && lensCommitted) {
+      pendingLensPoint = null;
+      lastLensActive = false;
+      applyLensAppearance(false);
+      return;
+    }
     pendingLensPoint = null;
     if (lensFrameRequest) {
       cancelAnimationFrame(lensFrameRequest);
@@ -2095,7 +2247,11 @@
     if (lensBirthFrame) cancelAnimationFrame(lensBirthFrame);
     lensBirthFrame = 0;
     lensRadiusMultiplier = 1;
-    if (reset) lensInverted = false;
+    if (reset) {
+      lensInverted = false;
+      lensCommitted = false;
+      suppressNewLensOnExit = false;
+    }
     lensTransition = null;
     applyLensAppearance(false);
   }
@@ -2104,7 +2260,7 @@
     // pointerleave on window is inconsistent when the pointer crosses into the
     // browser's tab/toolbar chrome. A bubbling mouseout/pointerout whose
     // relatedTarget is null is the reliable signal that the document was left.
-    if (event?.relatedTarget == null) hideLens();
+    if (event?.relatedTarget == null) hideLens({ preserveCommitted: true });
   }
 
   function updateScrollProgress() {
@@ -2527,8 +2683,8 @@
   window.addEventListener('resize', resize, { passive: true });
   window.addEventListener('scroll', updateScrollProgress, { passive: true });
   window.addEventListener('pointermove', updateLens, { passive: true });
-  window.addEventListener('pointerleave', hideLens, { passive: true });
-  document.documentElement.addEventListener('pointerleave', hideLens, { passive: true });
+  window.addEventListener('pointerleave', () => hideLens({ preserveCommitted: true }), { passive: true });
+  document.documentElement.addEventListener('pointerleave', () => hideLens({ preserveCommitted: true }), { passive: true });
   document.addEventListener('pointerout', handleDocumentPointerExit, { passive: true, capture: true });
   document.addEventListener('mouseout', handleDocumentPointerExit, { passive: true, capture: true });
   window.addEventListener('joe-active-domain-change', /** @param {CustomEvent} event */ (event) => {
@@ -2539,8 +2695,8 @@
     delays.forEach(delay => window.setTimeout(() => applyLayout(), delay + 8));
     if (Number(event.detail?.sceneId) !== 1) hideLens({ reset: true });
   });
-  window.addEventListener('blur', hideLens, { passive: true });
-  document.addEventListener('visibilitychange', () => { if (document.hidden) hideLens(); }, { passive: true });
+  window.addEventListener('blur', () => hideLens({ preserveCommitted: true }), { passive: true });
+  document.addEventListener('visibilitychange', () => { if (document.hidden) hideLens({ preserveCommitted: true }); }, { passive: true });
 
   star?.addEventListener('click', (e) => {
     if (editMode) { e.preventDefault(); return; }

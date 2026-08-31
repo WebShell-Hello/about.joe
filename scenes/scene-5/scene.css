@@ -15,8 +15,8 @@
   position: absolute;
   left: var(--scene5-stage-left);
   top: var(--scene5-stage-top);
-  width: 1920px;
-  height: 1080px;
+  width: 1402px;
+  height: 1122px;
   transform: scale(var(--scene5-stage-scale));
   transform-origin: 0 0;
   overflow: visible;
