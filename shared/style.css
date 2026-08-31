@@ -1583,9 +1583,50 @@ body.is-editing .editor.is-collapsed .editor-manager-column .editor-header {
   padding: 6px !important;
 }
 
-/* v22 — seamless mode restoration and initial text reveal */
-html.portfolio-booting .story,
+/* Keep the initial scene visible while runtime modules hydrate. Restoring a
+   saved view still stays hidden until its target position has been applied. */
 html.restoring-view body { visibility: hidden; }
+html:not(.scene-one-assets-ready) #sceneOneShell { visibility: hidden; }
+
+.site-boot-status,
+.scene-loading-status {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  color: rgba(247,247,245,.82);
+  font: 600 13px/1.2 -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  letter-spacing: 0;
+  text-shadow: 0 1px 12px rgba(0,0,0,.8);
+}
+.site-boot-status {
+  position: fixed;
+  inset: 0;
+  z-index: 4500;
+  pointer-events: none;
+}
+.scene-loading-status {
+  position: absolute;
+  inset: 0;
+  z-index: 120;
+  background: #030303;
+  pointer-events: none;
+}
+.site-boot-status[hidden],
+.scene-loading-status[hidden] { display: none; }
+.loading-status-spinner {
+  width: 14px;
+  height: 14px;
+  flex: 0 0 14px;
+  border: 1px solid rgba(255,255,255,.28);
+  border-top-color: rgba(255,255,255,.92);
+  border-radius: 50%;
+  animation: loading-status-spin .75s linear infinite;
+}
+@keyframes loading-status-spin { to { transform: rotate(360deg); } }
+@media (prefers-reduced-motion: reduce) {
+  .loading-status-spinner { animation: none; }
+}
 
 
 /* v23 — shared layer peers + deterministic initial text reveal */

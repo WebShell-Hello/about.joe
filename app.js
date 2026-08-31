@@ -10,6 +10,18 @@
   const pageParams = new URLSearchParams(location.search);
   const configuredBuild = document.querySelector('meta[name="joe-build-id"]')?.content || '';
   const ASSET_BUILD = configuredBuild.startsWith('__') ? 'dev' : configuredBuild;
+  const SCENE_ONE_BOOT_ASSETS = [
+    'scenes/scene-1/assets/scene1-landscape-4k.webp',
+    'scenes/scene-1/assets/character-main.webp',
+    'scenes/scene-1/assets/Background%20perspective-2.webp',
+    'scenes/scene-1/assets/Character%20perspective%20overlay-2.webp',
+    'scenes/scene-1/assets/grass-2.webp',
+    'scenes/scene-1/assets/grass1-2.webp',
+    'scenes/scene-1/assets/grass2-2.webp',
+    'scenes/scene-1/assets/grass-wireframe-a.webp',
+    'scenes/scene-1/assets/grass-wireframe-b.webp',
+    'scenes/scene-1/assets/grass-wireframe-c.webp'
+  ];
   window.__joeAssetBuild = ASSET_BUILD;
 
   function ssGet(key) { try { return sessionStorage.getItem(key); } catch (_) { return null; } }
@@ -63,6 +75,104 @@
     return response.text();
   }
 
+  function loadingCopy(state = 'loading') {
+    const language = window.SceneLanguage?.language || ssGet(UI_LANG_KEY) || 'en';
+    const copy = {
+      loading: { en: 'Loading...', zh: '拼命加载中' },
+      error: { en: 'Unable to load this scene', zh: '场景加载失败' }
+    };
+    return copy[state]?.[language === 'zh' ? 'zh' : 'en'] || copy.loading.en;
+  }
+
+  function setLoadingStatus(status, state) {
+    if (!status) return;
+    const copy = status.querySelector('[data-loading-status-copy]');
+    if (copy && state !== 'ready') copy.textContent = loadingCopy(state);
+    status.dataset.state = state;
+    status.hidden = state === 'ready';
+  }
+
+  function createSceneLoadingStatus(root) {
+    const status = document.createElement('div');
+    status.className = 'scene-loading-status';
+    status.setAttribute('role', 'status');
+    status.setAttribute('aria-live', 'polite');
+    status.innerHTML = '<span class="loading-status-spinner" aria-hidden="true"></span><span data-loading-status-copy></span>';
+    root.appendChild(status);
+    setLoadingStatus(status, 'loading');
+    return status;
+  }
+
+  function waitForImage(image, timeoutMs = 12000) {
+    if (image.complete) return Promise.resolve(image.naturalWidth > 0);
+    return new Promise(resolve => {
+      let settled = false;
+      const finish = loaded => {
+        if (settled) return;
+        settled = true;
+        image.removeEventListener('load', onLoad);
+        image.removeEventListener('error', onError);
+        resolve(loaded);
+      };
+      const onLoad = () => finish(true);
+      const onError = () => finish(false);
+      image.addEventListener('load', onLoad, { once: true });
+      image.addEventListener('error', onError, { once: true });
+      setTimeout(() => finish(false), timeoutMs);
+    });
+  }
+
+  async function preloadImageAsset(source) {
+    const image = new Image();
+    image.decoding = 'async';
+    image.src = ASSET_BUILD && ASSET_BUILD !== 'dev'
+      ? `${source}${source.includes('?') ? '&' : '?'}v=${encodeURIComponent(ASSET_BUILD)}`
+      : source;
+    const loaded = await waitForImage(image, 30000);
+    if (loaded && typeof image.decode === 'function') {
+      try { await image.decode(); } catch (_) {}
+    }
+    return loaded;
+  }
+
+  function installSceneLoadingStates() {
+    const siteStatus = document.getElementById('siteBootStatus');
+    setLoadingStatus(siteStatus, 'loading');
+
+    Promise.all(SCENE_ONE_BOOT_ASSETS.map(preloadImageAsset)).then(results => {
+      document.documentElement.classList.add('scene-one-assets-ready');
+      setLoadingStatus(siteStatus, results.every(Boolean) ? 'ready' : 'error');
+    });
+
+    [[2, 'sceneTwo'], [3, 'sceneThree'], [4, 'sceneFour']].forEach(([id, rootId]) => {
+      const root = document.getElementById(rootId);
+      const video = root?.querySelector('video');
+      if (!root || !video) return;
+      const status = createSceneLoadingStatus(root);
+      const poster = video.poster;
+      if (poster) {
+        const image = new Image();
+        image.onload = () => setLoadingStatus(status, 'ready');
+        image.onerror = () => setLoadingStatus(status, 'error');
+        image.src = poster;
+      } else {
+        setLoadingStatus(status, 'ready');
+      }
+      video.addEventListener('loadstart', () => setLoadingStatus(status, 'loading'));
+      video.addEventListener('waiting', () => setLoadingStatus(status, 'loading'));
+      video.addEventListener('stalled', () => setLoadingStatus(status, 'loading'));
+      video.addEventListener('canplay', () => setLoadingStatus(status, 'ready'));
+      video.addEventListener('playing', () => setLoadingStatus(status, 'ready'));
+      video.addEventListener('error', () => setLoadingStatus(status, 'error'));
+    });
+
+    window.addEventListener('ui-language-change', () => {
+      document.querySelectorAll('.site-boot-status:not([hidden]), .scene-loading-status:not([hidden])').forEach(status => {
+        setLoadingStatus(status, status.dataset.state || 'loading');
+      });
+    });
+  }
+
   // v44 — Scenes 2–5 share one visual stack, but interaction ownership is isolated per scene.
   // The shell always occupies exactly one viewport in document flow. While Scene 2–5
   // are story-locked, the inner stack is fixed to the viewport so trackpad momentum
@@ -92,17 +202,12 @@
       stack.appendChild(root);
     });
 
-    // Request all cinematic media immediately. Scene 3/4 are decoded while the
-    // user is still on Scene 2, so layer changes do not wait for network loading.
-    const mobile = window.matchMedia?.('(pointer: coarse), (max-width: 820px)')?.matches;
-    roots.forEach((root, index) => {
+    // Posters provide the initial cinematic frames. Full videos are requested
+    // only when navigation enters their scene, keeping Home bandwidth focused
+    // on the first visible scene.
+    roots.forEach(root => {
       root.querySelectorAll('video').forEach(video => {
-        // Mobile Safari may terminate the tab when three 4K videos are
-        // eagerly decoded. Keep only Scene 2 warm on touch-sized screens;
-        // later chapters load when the user enters them.
-        const eager = !mobile || index === 0;
-        video.preload = eager ? 'auto' : 'metadata';
-        if (eager) { try { video.load(); } catch (_) {} }
+        video.preload = 'none';
       });
     });
   }
@@ -187,6 +292,7 @@
     try {
       const markup = await Promise.all(registry.manifest.map(loadSceneMarkup));
       story.innerHTML = markup.join('\n');
+      installSceneLoadingStates();
 
       // Scene modules register their own DOM metadata, default layers and local behaviour.
       for (const entry of registry.manifest) await loadScript(entry.script);
@@ -195,8 +301,8 @@
 
       // Shared runtime is loaded only after every scene exists in the DOM.
       await loadScript('shared/runtime.js');
-      await loadScript('shared/editor.js');
       if (productionBuild) document.getElementById('adminEntry')?.remove();
+      else await loadScript('shared/editor.js');
       initPortfolioNavigation();
       document.documentElement.classList.add('scenes-ready');
       const requestedView = consumePendingView();
@@ -241,6 +347,7 @@
     } catch (error) {
       console.error(error);
       document.documentElement.classList.remove('portfolio-booting', 'restoring-view');
+      setLoadingStatus(document.getElementById('siteBootStatus'), 'error');
       story.innerHTML = `<div class="scene-load-error"><strong>Unable to load scenes.</strong><br>${String(error.message || error)}</div>`;
     }
   }

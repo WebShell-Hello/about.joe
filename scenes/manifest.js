@@ -1285,8 +1285,10 @@
       try { video.pause(); } catch (_) {}
       video.muted = true;
       video.playsInline = true;
-      video.preload = 'auto';
-      try { video.currentTime = 0; } catch (_) {}
+      video.preload = 'none';
+      if (video.readyState > 0) {
+        try { video.currentTime = 0; } catch (_) {}
+      }
       video.addEventListener('ended', () => {
         if (controller.phase === 'playing') completeNatural(id);
       });
@@ -1638,6 +1640,12 @@
       if (id >= 2 && id <= 5) {
         const targetController = controllerFor(id);
         if (targetController) {
+          if (id >= 2 && id <= 4) {
+            targetController.video.preload = 'auto';
+            if (targetController.video.readyState === 0) {
+              try { targetController.video.load(); } catch (_) {}
+            }
+          }
           await seekFirstFrame(targetController);
           targetController.phase = 'hold-start';
           targetController.captionStartedAt = 0;
