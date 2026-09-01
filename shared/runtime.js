@@ -1437,6 +1437,10 @@
       // These are independent editor layers, but in normal preview they only
       // appear inside the cursor lens.
       el.style.opacity = editMode ? String(baseOpacity) : '0';
+    } else if (!editMode && s.type === 'text' && Number(s.scene) === 1 && s.displayGroup === 'digital') {
+      // Digital Scene 1 text is revealed only by the same lens pass as the
+      // digital artwork. Keep it hidden during the initial reality state.
+      el.style.opacity = '0';
     } else {
       el.style.opacity = String(baseOpacity);
     }
@@ -1739,8 +1743,17 @@
       }
     };
     const sceneOneTextLayers = Object.entries(layout.layers || {}).filter(([, state]) => state?.type === 'text' && Number(state.scene) === 1);
+    const applyDigitalTextStyle = (textEl, digital) => {
+      if (!textEl) return;
+      textEl.style.webkitTextFillColor = digital ? 'transparent' : '';
+      textEl.style.webkitTextStroke = digital ? '1px #ffffff' : '';
+    };
     const resetSceneOneTextMasks = () => {
-      for (const [textId] of sceneOneTextLayers) applyMask(elementFor(textId), false, 0, 0, false);
+      for (const [textId] of sceneOneTextLayers) {
+        const textEl = elementFor(textId);
+        applyMask(textEl, false, 0, 0, false);
+        applyDigitalTextStyle(textEl, false);
+      }
     };
 
     if (editMode) {
@@ -1759,6 +1772,13 @@
       if (bonesState && elMap.characterBones) elMap.characterBones.style.opacity = String(runtimeOpacity('characterBones', bonesState));
       resetExtraPairs();
       resetSceneOneTextMasks();
+      for (const [textId, textState] of sceneOneTextLayers) {
+        const textEl = elementFor(textId);
+        if (textState?.displayGroup === 'digital') {
+          applyDigitalTextStyle(textEl, true);
+          if (textEl) textEl.style.opacity = String(runtimeOpacity(textId, textState) * 0.5);
+        }
+      }
       return;
     }
 
@@ -1796,7 +1816,9 @@
         for (const [textId, textState] of sceneOneTextLayers) {
           const textEl = elementFor(textId);
           applyMask(textEl, false, 0, 0, false);
-          if (textEl) textEl.style.opacity = textState?.displayGroup === 'digital' ? String(runtimeOpacity(textId, textState)) : '0';
+          const digital = textState?.displayGroup === 'digital';
+          applyDigitalTextStyle(textEl, digital);
+          if (textEl) textEl.style.opacity = digital ? String(runtimeOpacity(textId, textState) * 0.5) : '0';
         }
         return;
       }
@@ -1884,6 +1906,7 @@
     // the perspective region so the X-ray artwork can take visual priority.
     for (const [textId] of sceneOneTextLayers) {
       const textEl = elementFor(textId);
+      const textState = layout.layers[textId];
       // Text lives on the same design stage as the background and character.
       // Use the scene-space mask so stage scaling cannot create a second
       // apparent circle or shift its centre relative to the X-ray artwork.
@@ -1900,6 +1923,9 @@
           lensTransition.newInverted ? !inverse : inverse,
           local, lens.radius, lens.feather);
         else applyMask(textEl, lensInverted ? !inverse : inverse, local.x, local.y, true, lens.radius, lens.feather);
+        const digital = group === 'digital';
+        applyDigitalTextStyle(textEl, digital);
+        textEl.style.opacity = String(runtimeOpacity(textId, textState) * (digital ? 0.5 : 1));
       }
     }
 

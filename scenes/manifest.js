@@ -1662,7 +1662,7 @@
           applyVisuals(2,3,4,5);
           setStackLocked(false);
           setActiveDomain(current, { reason: `${reason}-travel` });
-          await animateWindowScrollTo(stackStartY(), current === 1 ? 760 : 620);
+          await animateWindowScrollTo(stackStartY(), current === 1 ? 1000 : 620);
           if (navToken !== story.navigationToken) return story.activeDomainId;
           jumpScrollTo(stackStartY());
           setStackLocked(true);

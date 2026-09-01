@@ -11,16 +11,16 @@
   const configuredBuild = document.querySelector('meta[name="joe-build-id"]')?.content || '';
   const ASSET_BUILD = configuredBuild.startsWith('__') ? 'dev' : configuredBuild;
   const SCENE_ONE_BOOT_ASSETS = [
-    'scenes/scene-1/assets/scene1-landscape-4k.webp',
-    'scenes/scene-1/assets/character-main.webp',
-    'scenes/scene-1/assets/Background%20perspective-2.webp',
-    'scenes/scene-1/assets/Character%20perspective%20overlay-2.webp',
-    'scenes/scene-1/assets/grass-2.webp',
-    'scenes/scene-1/assets/grass1-2.webp',
-    'scenes/scene-1/assets/grass2-2.webp',
-    'scenes/scene-1/assets/grass-wireframe-a.webp',
-    'scenes/scene-1/assets/grass-wireframe-b.webp',
-    'scenes/scene-1/assets/grass-wireframe-c.webp'
+    'scenes/scene-1/assets/scene1-landscape-1080p.webp',
+    'scenes/scene-1/assets/character-main-1080p.webp',
+    'scenes/scene-1/assets/Background%20perspective-2-1080p.webp',
+    'scenes/scene-1/assets/Character%20perspective%20overlay-2-1080p.webp',
+    'scenes/scene-1/assets/grass-2-1080p.webp',
+    'scenes/scene-1/assets/grass1-2-1080p.webp',
+    'scenes/scene-1/assets/grass2-2-1080p.webp',
+    'scenes/scene-1/assets/grass-wireframe-a-1080p.webp',
+    'scenes/scene-1/assets/grass-wireframe-b-1080p.webp',
+    'scenes/scene-1/assets/grass-wireframe-c-1080p.webp'
   ];
   window.__joeAssetBuild = ASSET_BUILD;
 

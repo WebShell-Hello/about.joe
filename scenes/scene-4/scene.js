@@ -13,8 +13,8 @@
     layers: {
       scene4Video: {
         type: 'video', scene: 4, core: true, name: 'Scene 4 video',
-        src: 'scenes/scene-4/assets/scene4-screen.mp4',
-        poster: 'scenes/scene-4/assets/scene4-poster.png',
+        src: 'scenes/scene-4/assets/scene4-screen-1080p.mp4',
+        poster: 'scenes/scene-4/assets/scene4-poster-1080p.png',
         width: 1920, height: 1080, sourceWidth: 3840, sourceHeight: 2160,
         fit: 'cover', playbackRate: 1,
         x: -76.62, y: -66.02, scale: 1.0622, rotation: 0,
