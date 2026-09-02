@@ -2035,7 +2035,6 @@ body.is-editing .global-site-menu .admin-entry { display: none; }
   .global-site-menu .admin-entry { font-size: 11px; padding-inline: 8px; }
 }
 
-
 /* -------- v50 single 文/A language toggle beside Contact -------- */
 .global-site-menu .site-language-switch {
   position: relative;
@@ -2132,3 +2131,47 @@ body.is-editing .story .editor-scene-active {
   backface-visibility: hidden;
 }
 body.is-editing .scene-main-background-layer { pointer-events: auto; }
+
+/* v64: mobile site chrome uses two stable rows. Keep the brand independent
+   from the navigation so narrow screens never compress the first row. */
+@media (max-width: 680px) {
+  .global-site-brand {
+    top: 15px;
+    left: 16px;
+    z-index: 4660;
+    font-size: 10px;
+    letter-spacing: .16em;
+  }
+  .global-site-menu {
+    top: 42px;
+    left: 0;
+    right: 0;
+    transform: none;
+    display: flex;
+    justify-content: center;
+    gap: 10px;
+    width: 100%;
+    max-width: none;
+    min-height: 24px;
+    padding: 4px 12px;
+    background: rgba(4, 5, 8, .16);
+    backdrop-filter: blur(8px);
+  }
+  .global-site-menu .global-site-nav {
+    gap: clamp(8px, 2.2vw, 14px);
+    min-width: 0;
+    padding: 5px 0;
+  }
+  .global-site-menu .global-site-nav a {
+    font-size: clamp(8px, 2.1vw, 11px);
+    letter-spacing: .025em;
+  }
+  .global-site-menu .site-language-switch {
+    min-width: 24px;
+    padding-inline: 0;
+    font-size: clamp(10px, 2.5vw, 12px);
+  }
+  .global-site-menu .admin-entry {
+    display: none;
+  }
+}
